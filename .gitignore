@@ -1,0 +1,8 @@
+.classpath
+.project
+.settings
+.DS_Store
+*.class
+*.swp
+/APDescription.txt
+/MTPs-Main-Container.txt
