@@ -19,7 +19,7 @@ public class Main {
     ContainerController cc = r.createMainContainer(p);
     if (cc != null) {
       try {
-        AgentController ac = cc.createNewAgent("insan1", "agent.Human", null);
+        AgentController ac = cc.createNewAgent("insan1", "agent.MusicSeeker", null);
         ac.start();
         
         ac = cc.createNewAgent("SONY", "agent.MusicProvider", null);

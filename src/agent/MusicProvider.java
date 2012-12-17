@@ -42,7 +42,7 @@ public class MusicProvider extends Agent {
       e.printStackTrace();
     }
     
-    addSongToSellList(new Song("Scorpions", "Hurricane 2000", Genre.ROCK, null, 3));
+    addSongToSellList(new Song("Scorpions", "Hurricane 2000", Genre.ROCK));
     
     addBehaviour(new CheckBuyerMessages());
   }

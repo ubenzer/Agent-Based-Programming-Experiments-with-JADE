@@ -6,17 +6,13 @@ public class Song {
 
   private final String artist;
   private final String name;
-  private final Float avgRating;
-  private final float price;
   private final Genre genre;
   
-  public Song(String artist, String name, Genre genre, Float avgRating, float price) {
+  public Song(String artist, String name, Genre genre) {
     super();
     this.artist = artist;
     this.name = name;
     this.genre = genre;
-    this.avgRating = avgRating == null ? new Float(3) : avgRating;
-    this.price = price;
   }
   
   public String getArtist() {
@@ -24,12 +20,6 @@ public class Song {
   }
   public String getName() {
     return this.name;
-  }
-  public Float getAvgRating() {
-    return this.avgRating;
-  }
-  public float getPrice() {
-    return this.price;
   }
   public Genre getGenre() {
     return this.genre;
@@ -42,7 +32,6 @@ public class Song {
     result = prime * result + ((this.artist == null) ? 0 : this.artist.hashCode());
     result = prime * result + ((this.genre == null) ? 0 : this.genre.hashCode());
     result = prime * result + ((this.name == null) ? 0 : this.name.hashCode());
-    result = prime * result + Float.floatToIntBits(this.price);
     return result;
   }
 
@@ -75,11 +64,6 @@ public class Song {
     } else if (!this.name.equals(other.name)) {
       return false;
     }
-    if (Float.floatToIntBits(this.price) != Float.floatToIntBits(other.price)) {
-      return false;
-    }
     return true;
   }
-
-  
 }

@@ -6,8 +6,8 @@ import jade.lang.acl.ACLMessage;
 
 import java.io.IOException;
 
-import agent.Human;
 import agent.MusicProvider.Genre;
+import agent.MusicSeeker;
 
 public class LookForMusic extends TickerBehaviour {
 
@@ -17,8 +17,8 @@ public class LookForMusic extends TickerBehaviour {
   private float minRating;
   private long maxTime; /* in ms*/
   private final Genre genre;
-  private final Human myAgent;
-  public LookForMusic(Human h, Genre genre, float balance, int maxSongCount, float maxPricePerSong, float minRating, long maxTime) {
+  private final MusicSeeker myAgent;
+  public LookForMusic(MusicSeeker h, Genre genre, float balance, int maxSongCount, float maxPricePerSong, float minRating, long maxTime) {
     super(h, 2000);
     this.genre = genre;
     this.myAgent = h;
@@ -36,6 +36,7 @@ public class LookForMusic extends TickerBehaviour {
 
   @Override
   protected void onTick() {
+    
     for(DFAgentDescription df: this.myAgent.knownMusicDiscoveryServiceList) {
       ACLMessage msg = new ACLMessage(ACLMessage.CFP);
       msg.addReceiver(df.getName());
