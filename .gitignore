@@ -6,3 +6,5 @@
 *.swp
 /APDescription.txt
 /MTPs-Main-Container.txt
+/log*
+/bin*
