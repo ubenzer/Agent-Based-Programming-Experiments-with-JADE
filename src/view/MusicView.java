@@ -2,6 +2,8 @@ package view;
 import java.awt.List;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -14,14 +16,10 @@ import javax.swing.border.EmptyBorder;
 
 import agent.MusicProvider.Genre;
 import agent.MusicSeeker;
-import behaviour.LookForMusic;
 
 
 public class MusicView extends JFrame {
 
-  /**
-   * 
-   */
   private static final long serialVersionUID = -1778944522529076269L;
   JPanel contentPane;
   JTextField minRating;
@@ -30,72 +28,75 @@ public class MusicView extends JFrame {
   JTextField maxSongCount;
   JComboBox musicType;
   List console;
-  JTextField maxSearchTime;
   /**
    * Create the frame.
    * @param runnable 
    */
   public MusicView(final MusicSeeker agent) {
-    setTitle("Agent");
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    setBounds(100, 100, 640, 480);
+    addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosed(WindowEvent e) {
+        agent.addBehaviour(agent.new ShutdownAgent());
+      }
+    });
+    setTitle("Seeker: " + agent.getLocalName());
+    setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    setBounds(100, 100, 618, 416);
     contentPane = new JPanel();
     contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
     setContentPane(contentPane);
     contentPane.setLayout(null);
     
-    JLabel lblNewLabel = new JLabel("Merhaba. Ben senin müzik bulucu etmeninim. Bana aşağıdaki bilgileri ver.");
-    lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
-    lblNewLabel.setVerticalAlignment(SwingConstants.TOP);
-    lblNewLabel.setBounds(6, 6, 628, 21);
-    contentPane.add(lblNewLabel);
+    JLabel lblInfo = new JLabel("Merhaba. Ben senin müzik bulucu etmeninim. Bana aşağıdaki bilgileri ver.");
+    lblInfo.setHorizontalAlignment(SwingConstants.CENTER);
+    lblInfo.setVerticalAlignment(SwingConstants.TOP);
+    lblInfo.setBounds(6, 6, 628, 21);
+    contentPane.add(lblInfo);
     
-    JLabel label = new JLabel("Ben senin için tüm müzik satıcılarını gezerim.");
-    label.setVerticalAlignment(SwingConstants.TOP);
-    label.setHorizontalAlignment(SwingConstants.CENTER);
-    label.setBounds(6, 23, 628, 21);
-    contentPane.add(label);
+    JLabel lblInfo2 = new JLabel("Ben senin için tüm müzik satıcılarını gezerim.");
+    lblInfo2.setVerticalAlignment(SwingConstants.TOP);
+    lblInfo2.setHorizontalAlignment(SwingConstants.CENTER);
+    lblInfo2.setBounds(6, 23, 628, 21);
+    contentPane.add(lblInfo2);
     
-    JLabel lblAradnMzikTipi = new JLabel("Aradığın müzik tipi:");
-    lblAradnMzikTipi.setHorizontalAlignment(SwingConstants.RIGHT);
-    lblAradnMzikTipi.setBounds(16, 56, 170, 16);
-    contentPane.add(lblAradnMzikTipi);
+    JLabel lblGenre = new JLabel("Aradığın müzik tipi:");
+    lblGenre.setHorizontalAlignment(SwingConstants.RIGHT);
+    lblGenre.setBounds(16, 56, 170, 16);
+    contentPane.add(lblGenre);
     
-    JLabel label_1 = new JLabel("En az rating:");
-    label_1.setHorizontalAlignment(SwingConstants.RIGHT);
-    label_1.setBounds(16, 81, 170, 16);
-    contentPane.add(label_1);
+    JLabel lblMinRating = new JLabel("En az rating:");
+    lblMinRating.setHorizontalAlignment(SwingConstants.RIGHT);
+    lblMinRating.setBounds(16, 81, 170, 16);
+    contentPane.add(lblMinRating);
     
-    JLabel label_2 = new JLabel("Müzik başına max bütçe:");
-    label_2.setHorizontalAlignment(SwingConstants.RIGHT);
-    label_2.setBounds(16, 109, 170, 16);
-    contentPane.add(label_2);
+    JLabel lblPricePerMusic = new JLabel("Müzik başına max bütçe:");
+    lblPricePerMusic.setHorizontalAlignment(SwingConstants.RIGHT);
+    lblPricePerMusic.setBounds(16, 109, 170, 16);
+    contentPane.add(lblPricePerMusic);
     
-    JLabel label_3 = new JLabel("Toplam bütçe:");
-    label_3.setHorizontalAlignment(SwingConstants.RIGHT);
-    label_3.setBounds(16, 137, 170, 16);
-    contentPane.add(label_3);
+    JLabel lblTotalBudget = new JLabel("Toplam bütçe:");
+    lblTotalBudget.setHorizontalAlignment(SwingConstants.RIGHT);
+    lblTotalBudget.setBounds(16, 137, 170, 16);
+    contentPane.add(lblTotalBudget);
     
-    JLabel label_4 = new JLabel("Max. şarkı sayısı:");
-    label_4.setHorizontalAlignment(SwingConstants.RIGHT);
-    label_4.setBounds(16, 165, 170, 16);
-    contentPane.add(label_4);
+    JLabel lblMaxSongCount = new JLabel("Max. şarkı sayısı:");
+    lblMaxSongCount.setHorizontalAlignment(SwingConstants.RIGHT);
+    lblMaxSongCount.setBounds(16, 165, 170, 16);
+    contentPane.add(lblMaxSongCount);
     
     JButton search = new JButton("Buluve");
     search.addActionListener(new ActionListener() {
       @Override
-      public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+      public void actionPerformed(ActionEvent e) {
  
        Genre genre = (Genre)musicType.getSelectedItem();
        int minRatingI, maxSongCountI;
-       long maxTimeL;
        float maxBudgetPerSongI, totalBudgetI;
        try {
          minRatingI = Integer.parseInt(minRating.getText());
          maxSongCountI = Integer.parseInt(maxSongCount.getText());
          maxBudgetPerSongI = Float.parseFloat(maxBudgetPerSong.getText());
          totalBudgetI = Float.parseFloat(totalBudget.getText());
-         maxTimeL = Long.parseLong(maxSearchTime.getText());
        } catch (NumberFormatException e1) {
         console.add("Sayılar adam gibi diil.");
         e1.printStackTrace();
@@ -107,16 +108,11 @@ public class MusicView extends JFrame {
          return;
        }
        
-       agent.addBehaviour(new LookForMusic(agent, genre, maxBudgetPerSongI, maxSongCountI, maxBudgetPerSongI, minRatingI, maxTimeL));
+       agent.addBehaviour(agent.new FindAndPurchaseMusics(genre, maxBudgetPerSongI, maxSongCountI, minRatingI, totalBudgetI));
       }
     });
-    search.setBounds(6, 224, 117, 29);
+    search.setBounds(474, 160, 117, 29);
     contentPane.add(search);
-    
-    JButton cancel = new JButton("Daha fazla bulma, iptal");
-    cancel.setEnabled(false);
-    cancel.setBounds(124, 224, 182, 29);
-    contentPane.add(cancel);
     
     musicType = new JComboBox();
     musicType.setBounds(198, 52, 221, 27);
@@ -143,18 +139,8 @@ public class MusicView extends JFrame {
     contentPane.add(maxSongCount);
     
     console = new List();
-    console.setBounds(16, 259, 594, 189);
+    console.setBounds(16, 195, 594, 189);
     contentPane.add(console);
-    
-    JLabel lblEnFazlaArama = new JLabel("En fazla arama süresi (sn):");
-    lblEnFazlaArama.setHorizontalAlignment(SwingConstants.RIGHT);
-    lblEnFazlaArama.setBounds(16, 193, 170, 16);
-    contentPane.add(lblEnFazlaArama);
-    
-    maxSearchTime = new JTextField();
-    maxSearchTime.setColumns(10);
-    maxSearchTime.setBounds(198, 187, 221, 28);
-    contentPane.add(maxSearchTime);
     
     for(Genre g: Genre.values()) {
       musicType.addItem(g);
