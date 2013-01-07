@@ -1,20 +1,21 @@
 package agent;
 
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
+import jade.core.behaviours.SimpleBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
-import jade.lang.acl.UnreadableException;
 
 import java.awt.EventQueue;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import misc.Logger;
@@ -26,12 +27,7 @@ import agent.MusicProvider.Genre;
 
 public class MusicSeeker extends Agent {
 
-  /**
-   * 
-   */
-  private static final long serialVersionUID = 3789029878086673023L;
-
-  public final Set<DFAgentDescription> knownMusicDiscoveryServiceList = new HashSet<DFAgentDescription>();
+  public final HashSet<DFAgentDescription> knownMusicDiscoveryServiceList = new HashSet<DFAgentDescription>();
   public final HashMap<Genre, HashMap<Song, SongSellInfo>> boughtSongs = new HashMap<Genre, HashMap<Song, SongSellInfo>>();
   private MusicSeeker agent = this;
   private MusicView ui;
@@ -59,47 +55,17 @@ public class MusicSeeker extends Agent {
     return ui;
   }
   
-  public class CheckSellerMessages extends CyclicBehaviour {
-
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 8708169638562335109L;
-
-    public CheckSellerMessages() {
-    }
-
-    @Override
-    public void action() {
-      
-      System.out.println(this.myAgent.getName() + " is checking for messages... ");
-      ACLMessage msg = this.myAgent.receive();
-      if (msg == null) { return; }
-      
-      if(msg.getPerformative() == ACLMessage.REFUSE) {
-        System.out.println(msg.getSender().getName() + " refused me!");
-        return;
-      }
-      
-      HashMap<Song, SongSellInfo> songListReturned;
-      try {
-        songListReturned = (HashMap<Song, SongSellInfo>) msg.getContentObject();
-      } catch (UnreadableException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-      //if(songListReturned == null || songListReturned.size() == 0) { return; }
-      
-     
-    }
-  }
-  
   public final class FindAndPurchaseMusics extends SequentialBehaviour {
-
+    private Set<DFAgentDescription> knownAgentsAtTimeBehaviourStarted;
+    private Set<SongSellInfo> songOffers = new HashSet<SongSellInfo>();
+    private Set<SongSellInfo> songsToBuy;
+    
     public FindAndPurchaseMusics(Genre genre, float maxBudgetPerSongI, int maxSongCountI, int minRatingI, float totalBudgetI) {
+      knownAgentsAtTimeBehaviourStarted = (HashSet<DFAgentDescription>) agent.knownMusicDiscoveryServiceList.clone();
       super.addSubBehaviour(new LookForMusic(genre, maxBudgetPerSongI, minRatingI));
-      //super.listenAnswers // TODO
-      //super.addSubBehaviour(new BuyMusic(Set<Music> musicList));
+      super.addSubBehaviour(new ListenMusicAnswers());
+      super.addSubBehaviour(new SelectMusic(songOffers, genre, maxBudgetPerSongI, maxSongCountI, minRatingI, totalBudgetI));
+      super.addSubBehaviour(new BuyMusic(songsToBuy));
     }
     
     private class LookForMusic extends OneShotBehaviour {
@@ -116,7 +82,7 @@ public class MusicSeeker extends Agent {
     public void action() {
       Logger.info(agent, "Müzik satıcılarına verilen kriterlere uygun bir müzik listesi isteği yollanıyor...");
       ACLMessage msg = new ACLMessage(ACLMessage.CFP);
-      for(DFAgentDescription df: agent.knownMusicDiscoveryServiceList) {
+      for(DFAgentDescription df: knownAgentsAtTimeBehaviourStarted) {
         msg.addReceiver(df.getName());
       }
       try {
@@ -127,7 +93,163 @@ public class MusicSeeker extends Agent {
       }
     }
    }
+  
+    private class ListenMusicAnswers extends SimpleBehaviour {
+      private int answerCount = 0;
+      private final long TIMEOUT_MS = 15000;
+      private final long WAIT_MS = 1000;
+      private final long startTime;
+      
+      public ListenMusicAnswers() {
+        super();
+        startTime = System.currentTimeMillis();
+      }
+
+      @Override
+      public void action() {
+        Logger.info(agent, "Müzik arama sonuçları alınıyor... (%s / %s)", answerCount, knownAgentsAtTimeBehaviourStarted.size());
+        ACLMessage msg = this.myAgent.receive();
+        if (msg == null) { block(WAIT_MS); return; }
+        
+        answerCount++;
+        
+        if(msg.getPerformative() == ACLMessage.REFUSE) {
+          Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
+          return;
+        }
+        
+        try {
+          HashSet<SongSellInfo> songListReturned = (HashSet<SongSellInfo>) msg.getContentObject();
+          if(songListReturned == null || songListReturned.size() == 0) { 
+            Logger.warn(agent, "%s isimli etmen boş liste gönderdi.", msg.getSender().getName());
+            return;
+          }
+          
+          for(SongSellInfo s: songListReturned) {
+            /* We take security serious */
+            if(!s.getSellerAgent().equals(msg.getSender())) {
+              Logger.error(agent, "Kimlik uyuşmazlığı tespit edildi! %s 'ten gelen bilgiler yok sayılıyor.", msg.getSender().getName());
+              return;
+            }
+          }
+          
+          songOffers.addAll(songListReturned);
+          
+        } catch (Exception e) {
+          Logger.error(agent, e, "Listeyi alamadım.");
+        }
+       
+      }
+
+      @Override
+      public boolean done() {
+        if(System.currentTimeMillis() - startTime > TIMEOUT_MS) {
+          Logger.warn(agent, "Timeout occured when waiting for answers!");
+          return true;
+        }
+        
+        if(answerCount >= knownAgentsAtTimeBehaviourStarted.size()) {
+          return true;
+        }
+        
+        return false;
+      }
+    }
+  
+    private class SelectMusic extends OneShotBehaviour {
+
+      private Set<SongSellInfo> songsProposed;
+      private Genre genre;
+      private float maxBudgetPerSongI;
+      private int maxSongCountI;
+      private int minRatingI;
+      private float totalBudgetI;
+      
+      public SelectMusic(Set<SongSellInfo> songOffers, Genre genre, float maxBudgetPerSongI, int maxSongCountI, int minRatingI, float totalBudgetI) {
+        this.songsProposed = songOffers;
+        this.genre = genre;
+        this.maxBudgetPerSongI = maxBudgetPerSongI;
+        this.maxSongCountI = maxSongCountI;
+        this.minRatingI = minRatingI;
+        this.totalBudgetI = totalBudgetI;
+      }
+
+      @Override
+      public void action() {
+        HashMap<SongSellInfo, Float> filteredSongList = new HashMap<SongSellInfo, Float>();
+        float totalPrice = 0;
+        
+        /* Elaminate unmatched songs and find min prica and max rating for valid songs */
+        Iterator<SongSellInfo> iter = songsProposed.iterator();
+        while (iter.hasNext()) {
+          SongSellInfo oneOffer = iter.next();
+          Song oneOfferSong = oneOffer.getSong();
+          
+          if(!this.genre.equals(oneOffer.getSong().getGenre()) || oneOffer.getAvgRating() < this.minRatingI || oneOffer.getPrice() > this.maxBudgetPerSongI) {
+            Logger.info(agent, "%s elendi, şartlar uygun değil.", oneOffer);
+            continue;
+          }
+          
+          SongSellInfo tbAdded = oneOffer;
+          Float maxRating = oneOffer.getAvgRating();
+          
+          Iterator<SongSellInfo> innerIter = songsProposed.iterator();
+          while (innerIter.hasNext()) {
+            SongSellInfo oneOfferInner = iter.next();
+            Song oneOfferSongInner = oneOffer.getSong();
+            
+            if(oneOfferInner.equals(oneOffer) || !oneOfferSongInner.equals(oneOfferSong)) {
+              continue;
+            }
+            
+            if(maxRating < oneOfferInner.getAvgRating()) {
+              maxRating = oneOfferInner.getAvgRating();
+            }
+            if(oneOfferInner.getPrice() < tbAdded.getPrice()) {
+              tbAdded = oneOfferInner;
+            }
+          }
+          filteredSongList.put(tbAdded, maxRating);
+          totalPrice += tbAdded.getPrice();
+        }
+        
+        if(filteredSongList.size() > this.maxSongCountI) {
+          Iterator<Map.Entry<SongSellInfo, Float>> i = filteredSongList.entrySet().iterator();
+          while (filteredSongList.size() > this.maxSongCountI) {
+            Map.Entry<SongSellInfo, Float> itemToDelete = i.next();
+            totalPrice -= itemToDelete.getKey().getPrice();
+            i.remove();
+          }
+        }
+        
+        if(totalPrice > this.totalBudgetI) {
+          Iterator<Map.Entry<SongSellInfo, Float>> i = filteredSongList.entrySet().iterator();
+          while (totalPrice > this.totalBudgetI) {
+            Map.Entry<SongSellInfo, Float> itemToDelete = i.next();
+            totalPrice -= itemToDelete.getKey().getPrice();
+            i.remove();
+          }
+        }
+        
+        songsToBuy = filteredSongList.keySet();
+      }
+    }
+  
+    private class BuyMusic extends OneShotBehaviour {
+
+      public BuyMusic(Set<SongSellInfo> songsToBuy) {
+        // TODO Auto-generated constructor stub
+      }
+
+      @Override
+      public void action() {
+        // TODO Auto-generated method stub
+        
+      }
+      
+    }
   }
+  
   private final class UpdateMusicDiscoveryAgents extends TickerBehaviour {
 
     public UpdateMusicDiscoveryAgents() {
