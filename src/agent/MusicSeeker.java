@@ -18,10 +18,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import javax.swing.SwingUtilities;
+
 import misc.Logger;
 import pojo.Song;
 import pojo.SongRequestInfo;
 import pojo.SongSellInfo;
+import util.F.Tuple;
+import util.Utils;
 import view.MusicView;
 import agent.MusicProvider.Genre;
 
@@ -63,9 +67,10 @@ public class MusicSeeker extends Agent {
     public FindAndPurchaseMusics(Genre genre, float maxBudgetPerSongI, int maxSongCountI, int minRatingI, float totalBudgetI) {
       knownAgentsAtTimeBehaviourStarted = (HashSet<DFAgentDescription>) agent.knownMusicDiscoveryServiceList.clone();
       super.addSubBehaviour(new LookForMusic(genre, maxBudgetPerSongI, minRatingI));
-      super.addSubBehaviour(new ListenMusicAnswers());
+      super.addSubBehaviour(new ListenLookForMusicAnswers());
       super.addSubBehaviour(new SelectMusic(songOffers, genre, maxBudgetPerSongI, maxSongCountI, minRatingI, totalBudgetI));
       super.addSubBehaviour(new BuyMusic(songsToBuy));
+      super.addSubBehaviour(new ListenBuyMusicAnswers());
     }
     
     private class LookForMusic extends OneShotBehaviour {
@@ -86,6 +91,7 @@ public class MusicSeeker extends Agent {
         msg.addReceiver(df.getName());
       }
       try {
+        msg.setContent("MUSIC-SEARCH");
         msg.setContentObject(new SongRequestInfo(genre, maxBudgetPerSong, minRating));
         this.myAgent.send(msg);
       } catch (Exception e) {
@@ -94,13 +100,13 @@ public class MusicSeeker extends Agent {
     }
    }
   
-    private class ListenMusicAnswers extends SimpleBehaviour {
+    private class ListenLookForMusicAnswers extends SimpleBehaviour {
       private int answerCount = 0;
       private final long TIMEOUT_MS = 15000;
       private final long WAIT_MS = 1000;
       private final long startTime;
       
-      public ListenMusicAnswers() {
+      public ListenLookForMusicAnswers() {
         super();
         startTime = System.currentTimeMillis();
       }
@@ -115,6 +121,11 @@ public class MusicSeeker extends Agent {
         
         if(msg.getPerformative() == ACLMessage.REFUSE) {
           Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
+          return;
+        }
+        
+        if(!"MUSIC-SEARCH".equals(msg.getContent())) {
+          Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
           return;
         }
         
@@ -236,17 +247,96 @@ public class MusicSeeker extends Agent {
     }
   
     private class BuyMusic extends OneShotBehaviour {
-
+      private Set<SongSellInfo> songsToBuyList;
       public BuyMusic(Set<SongSellInfo> songsToBuy) {
-        // TODO Auto-generated constructor stub
+        this.songsToBuyList = songsToBuy;
       }
 
       @Override
       public void action() {
-        // TODO Auto-generated method stub
-        
+         Logger.info(agent, "Satın alınmasına karar verilen müziklerin siparişi veriliyor...");
+         for(SongSellInfo ssi: songsToBuyList) {
+           ACLMessage msg = new ACLMessage(ACLMessage.AGREE);
+           msg.addReceiver(ssi.getSellerAgent());
+           msg.setContent("BUY-MUSIC");
+           try {
+             msg.setContentObject(ssi);
+             this.myAgent.send(msg);
+           } catch (Exception e) {
+             Logger.error(agent, e, "Müzik satın alma isteği yollanamadı.");
+           }
+         }
+      }
+    }
+    
+    private class ListenBuyMusicAnswers extends SimpleBehaviour {
+      private int answerCount = 0;
+      private final long TIMEOUT_MS = 15000;
+      private final long WAIT_MS = 1000;
+      private final long startTime;
+      
+      public ListenBuyMusicAnswers() {
+        super();
+        startTime = System.currentTimeMillis();
       }
       
+      @Override
+      public void action() {
+        Logger.info(agent, "Müzik satın alma istekleri sonucu bekleniyor... (%s / %s)", answerCount, songsToBuy.size());
+        ACLMessage msg = this.myAgent.receive();
+        if (msg == null) { block(WAIT_MS); return; }
+        
+        answerCount++;
+        
+        if(msg.getPerformative() == ACLMessage.REFUSE) {
+          Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
+          return;
+        }
+        
+        if(!"BUY-MUSIC".equals(msg.getContent())) {
+          Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
+          return;
+        }
+        
+        try {
+          Tuple<String, SongSellInfo> urlRequest = (Tuple<String, SongSellInfo>) msg.getContentObject();
+          final String url = urlRequest._1;
+          final SongSellInfo songInfo = urlRequest._2;
+          if(Utils.isBlank(url) || songInfo == null) { 
+            Logger.warn(agent, "%s isimli etmen müzik bilgisini vermedi, satın alamadım.", msg.getSender().getName());
+            return;
+          }
+          
+          Logger.info(agent, "Song: %s - %s R: %s P: %s - URL: %s", songInfo.getSong().getArtist(), songInfo.getSong().getName(), songInfo.getAvgRating(), songInfo.getPrice(), url);
+          
+          Runnable addIt = new Runnable() { 
+            @Override
+            public void run() {
+              ui.addMessageToConsole("Agent: " + songInfo.getSellerAgent().getName() + " " +
+                                     "Song: " + songInfo.getSong().getArtist() + " - " + songInfo.getSong().getName() + " " +
+                                     "R: " + songInfo.getAvgRating() + " P:" + songInfo.getPrice() + " URL: " + url);
+            }
+          };
+         
+          SwingUtilities.invokeLater(addIt);   
+        } catch (Exception e) {
+          Logger.error(agent, e, "Şarkıyı alamadım.");
+        }
+      }
+
+      @Override
+      public boolean done() {
+        if(System.currentTimeMillis() - startTime > TIMEOUT_MS) {
+          Logger.warn(agent, "Timeout occured when waiting for answers!");
+          return true;
+        }
+        
+        if(answerCount >= knownAgentsAtTimeBehaviourStarted.size()) {
+          return true;
+        }
+        
+        return false;
+      }
     }
   }
   

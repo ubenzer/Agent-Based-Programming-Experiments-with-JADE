@@ -28,6 +28,11 @@ public class MusicView extends JFrame {
   JTextField maxSongCount;
   JComboBox musicType;
   List console;
+  
+  public void addMessageToConsole(String message) {
+    console.add(message);
+  }
+  
   /**
    * Create the frame.
    * @param runnable 
@@ -84,10 +89,12 @@ public class MusicView extends JFrame {
     lblMaxSongCount.setBounds(16, 165, 170, 16);
     contentPane.add(lblMaxSongCount);
     
-    JButton search = new JButton("Buluve");
+    final JButton search = new JButton("Buluve");
     search.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
+        
+        search.setEnabled(false);
  
        Genre genre = (Genre)musicType.getSelectedItem();
        int minRatingI, maxSongCountI;

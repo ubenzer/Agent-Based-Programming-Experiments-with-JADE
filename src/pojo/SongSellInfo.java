@@ -2,8 +2,10 @@ package pojo;
 
 import jade.core.AID;
 
+import java.io.Serializable;
 
-public class SongSellInfo {
+
+public class SongSellInfo implements Serializable {
 
   private final float avgRating;
   private final float price;
