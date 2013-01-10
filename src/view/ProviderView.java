@@ -14,7 +14,9 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 
-import agent.MusicProvider.Genre;
+import pojo.Song;
+import pojo.Song.Genre;
+
 import agent.MusicSeeker;
 
 
@@ -96,7 +98,7 @@ public class ProviderView extends JFrame {
         
         btnAdd.setEnabled(false);
  
-       Genre genre = (Genre)txtGenre.getSelectedItem();
+       Song.Genre genre = (Song.Genre)txtGenre.getSelectedItem();
        int minRatingI, maxSongCountI;
        float maxBudgetPerSongI, totalBudgetI;
        try {
@@ -152,7 +154,7 @@ public class ProviderView extends JFrame {
     btnDelete.setBounds(422, 348, 272, 29);
     contentPane.add(btnDelete);
     
-    for(Genre g: Genre.values()) {
+    for(Song.Genre g: Song.Genre.values()) {
       txtGenre.addItem(g);
     }
   }

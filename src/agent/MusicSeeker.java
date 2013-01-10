@@ -22,17 +22,17 @@ import javax.swing.SwingUtilities;
 
 import misc.Logger;
 import pojo.Song;
+import pojo.Song.Genre;
 import pojo.SongRequestInfo;
 import pojo.SongSellInfo;
 import util.F.Tuple;
 import util.Utils;
 import view.MusicView;
-import agent.MusicProvider.Genre;
 
 public class MusicSeeker extends Agent {
 
   public final HashSet<DFAgentDescription> knownMusicDiscoveryServiceList = new HashSet<DFAgentDescription>();
-  public final HashMap<Genre, HashMap<Song, SongSellInfo>> boughtSongs = new HashMap<Genre, HashMap<Song, SongSellInfo>>();
+  public final HashMap<Song.Genre, HashMap<Song, SongSellInfo>> boughtSongs = new HashMap<Song.Genre, HashMap<Song, SongSellInfo>>();
   private MusicSeeker agent = this;
   private MusicView ui;
   
@@ -64,7 +64,7 @@ public class MusicSeeker extends Agent {
     private Set<SongSellInfo> songOffers = new HashSet<SongSellInfo>();
     private Set<SongSellInfo> songsToBuy;
     
-    public FindAndPurchaseMusics(Genre genre, float maxBudgetPerSongI, int maxSongCountI, int minRatingI, float totalBudgetI) {
+    public FindAndPurchaseMusics(Song.Genre genre, float maxBudgetPerSongI, int maxSongCountI, int minRatingI, float totalBudgetI) {
       knownAgentsAtTimeBehaviourStarted = (HashSet<DFAgentDescription>) agent.knownMusicDiscoveryServiceList.clone();
       super.addSubBehaviour(new LookForMusic(genre, maxBudgetPerSongI, minRatingI));
       super.addSubBehaviour(new ListenLookForMusicAnswers());
@@ -76,8 +76,8 @@ public class MusicSeeker extends Agent {
     private class LookForMusic extends OneShotBehaviour {
      private float maxBudgetPerSong;
      private float minRating;
-     private final Genre genre;
-     public LookForMusic(Genre genre, float maxBudgetPerSong, int minRating) {
+     private final Song.Genre genre;
+     public LookForMusic(Song.Genre genre, float maxBudgetPerSong, int minRating) {
        this.genre = genre;
        this.maxBudgetPerSong = maxBudgetPerSong;
        this.minRating = minRating;
@@ -170,13 +170,13 @@ public class MusicSeeker extends Agent {
     private class SelectMusic extends OneShotBehaviour {
 
       private Set<SongSellInfo> songsProposed;
-      private Genre genre;
+      private Song.Genre genre;
       private float maxBudgetPerSongI;
       private int maxSongCountI;
       private int minRatingI;
       private float totalBudgetI;
       
-      public SelectMusic(Set<SongSellInfo> songOffers, Genre genre, float maxBudgetPerSongI, int maxSongCountI, int minRatingI, float totalBudgetI) {
+      public SelectMusic(Set<SongSellInfo> songOffers, Song.Genre genre, float maxBudgetPerSongI, int maxSongCountI, int minRatingI, float totalBudgetI) {
         this.songsProposed = songOffers;
         this.genre = genre;
         this.maxBudgetPerSongI = maxBudgetPerSongI;

@@ -1,14 +1,14 @@
 package pojo;
 
-import agent.MusicProvider.Genre;
+import pojo.Song.Genre;
 
 public class Song {
 
   private final String artist;
   private final String name;
-  private final Genre genre;
+  private final Song.Genre genre;
   
-  public Song(String artist, String name, Genre genre) {
+  public Song(String artist, String name, Song.Genre genre) {
     super();
     this.artist = artist;
     this.name = name;
@@ -21,7 +21,7 @@ public class Song {
   public String getName() {
     return this.name;
   }
-  public Genre getGenre() {
+  public Song.Genre getGenre() {
     return this.genre;
   }
 
@@ -66,4 +66,6 @@ public class Song {
     }
     return true;
   }
+
+  public static enum Genre { POP, CLASSIC, JAZZ, ROCK, COUNTRY }
 }

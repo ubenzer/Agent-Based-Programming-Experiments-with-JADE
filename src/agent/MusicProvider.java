@@ -18,12 +18,7 @@ import pojo.Song;
 
 public class MusicProvider extends Agent {
 
-  public static enum Genre { POP, CLASSIC, JAZZ, ROCK, COUNTRY }
-  /**
-   * 
-   */
-  private static final long serialVersionUID = -5369914972197884450L;
-  final Map<Genre, HashSet<Song>> songList = initSongList();
+  final Map<Song.Genre, HashSet<Song>> songList = initSongList();
 
   @Override
   public void setup() {
@@ -42,14 +37,14 @@ public class MusicProvider extends Agent {
       e.printStackTrace();
     }
     
-    addSongToSellList(new Song("Scorpions", "Hurricane 2000", Genre.ROCK));
+    addSongToSellList(new Song("Scorpions", "Hurricane 2000", Song.Genre.ROCK));
     
     addBehaviour(new CheckBuyerMessages());
   }
   
-  private static Map<Genre, HashSet<Song>> initSongList() {
-    Map<Genre, HashSet<Song>> tbReturned = new HashMap<Genre, HashSet<Song>>();
-    for(Genre g: Genre.values()) {
+  private static Map<Song.Genre, HashSet<Song>> initSongList() {
+    Map<Song.Genre, HashSet<Song>> tbReturned = new HashMap<Song.Genre, HashSet<Song>>();
+    for(Song.Genre g: Song.Genre.values()) {
       tbReturned.put(g, new HashSet<Song>());
     }
     return tbReturned;
@@ -81,9 +76,9 @@ public class MusicProvider extends Agent {
       if (msg == null) { return; }
       
       ACLMessage reply = msg.createReply();
-      Genre requestedGenre = null;
+      Song.Genre requestedGenre = null;
       try {
-        requestedGenre = (Genre)msg.getContentObject();
+        requestedGenre = (Song.Genre)msg.getContentObject();
       } catch (UnreadableException e) {
         e.printStackTrace();
       }
