@@ -4,8 +4,7 @@ import jade.core.AID;
 
 import java.io.Serializable;
 
-
-public class SongSellInfo implements Serializable {
+public class SongSellInfo implements Serializable, Cloneable {
 
   private final float avgRating;
   private final float price;
@@ -38,8 +37,9 @@ public class SongSellInfo implements Serializable {
  
   @Override
   public String toString() {
-    return "SongSellInfo [sellerAgent=" + this.sellerAgent + ", song=" + this.song + "]";
+    return "SongSellInfo [avgRating=" + this.avgRating + ", price=" + this.price + ", sellerAgent=" + this.sellerAgent + ", song=" + this.song + "]";
   }
+  
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -77,4 +77,11 @@ public class SongSellInfo implements Serializable {
     }
     return true;
   }
+  
+  @Override
+  public SongSellInfo clone() {
+    return new SongSellInfo(this.getAvgRating(), this.getPrice(), this.getSellerAgent(), this.getSong());
+  }
+  
+ 
 }

@@ -44,7 +44,8 @@ public class PlatformManager extends JFrame {
       public void actionPerformed(ActionEvent e) {
         try {
           String agentName = textMusicSeeker.getText();
-          if(Utils.isBlank(agentName)) { return; }
+          if(Utils.isBlank(agentName)) { Logger.warn("Agent adı yok."); return; }
+          textMusicSeeker.setText("");
           Logger.info("Agent %s yaratılıyor...", agentName);
           AgentController ac = jadeContainer.createNewAgent(agentName, "agent.MusicSeeker", null);
           ac.start();

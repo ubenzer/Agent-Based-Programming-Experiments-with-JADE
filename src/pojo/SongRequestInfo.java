@@ -2,8 +2,6 @@ package pojo;
 
 import java.io.Serializable;
 
-import pojo.Song.Genre;
-
 
 public class SongRequestInfo implements Serializable {
 

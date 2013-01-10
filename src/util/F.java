@@ -1,5 +1,7 @@
 package util;
 
+import jade.util.leap.Serializable;
+
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -231,7 +233,7 @@ public class F {
         }
     }
 
-    public static class Tuple<A, B> {
+    public static class Tuple<A, B> implements Serializable {
 
         final public A _1;
         final public B _2;

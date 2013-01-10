@@ -22,7 +22,6 @@ import javax.swing.SwingUtilities;
 
 import misc.Logger;
 import pojo.Song;
-import pojo.Song.Genre;
 import pojo.SongRequestInfo;
 import pojo.SongSellInfo;
 import util.F.Tuple;
@@ -44,7 +43,7 @@ public class MusicSeeker extends Agent {
      public void run() {
        Logger.info(agent, "İnsanlarla iletişim kurmak için UI yaratılıyor...");
        try {
-         MusicView ui = new MusicView(agent);
+         ui = new MusicView(agent);
          ui.setVisible(true);
        } catch (Exception e) {
          Logger.error(agent, e, "UI yaratılamadı!");
@@ -64,7 +63,7 @@ public class MusicSeeker extends Agent {
     private Set<SongSellInfo> songOffers = new HashSet<SongSellInfo>();
     private Set<SongSellInfo> songsToBuy;
     
-    public FindAndPurchaseMusics(Song.Genre genre, float maxBudgetPerSongI, int maxSongCountI, int minRatingI, float totalBudgetI) {
+    public FindAndPurchaseMusics(Song.Genre genre, float maxBudgetPerSongI, int maxSongCountI, float minRatingI, float totalBudgetI) {
       knownAgentsAtTimeBehaviourStarted = (HashSet<DFAgentDescription>) agent.knownMusicDiscoveryServiceList.clone();
       super.addSubBehaviour(new LookForMusic(genre, maxBudgetPerSongI, minRatingI));
       super.addSubBehaviour(new ListenLookForMusicAnswers());
@@ -77,7 +76,7 @@ public class MusicSeeker extends Agent {
      private float maxBudgetPerSong;
      private float minRating;
      private final Song.Genre genre;
-     public LookForMusic(Song.Genre genre, float maxBudgetPerSong, int minRating) {
+     public LookForMusic(Song.Genre genre, float maxBudgetPerSong, float minRating) {
        this.genre = genre;
        this.maxBudgetPerSong = maxBudgetPerSong;
        this.minRating = minRating;
@@ -91,7 +90,6 @@ public class MusicSeeker extends Agent {
         msg.addReceiver(df.getName());
       }
       try {
-        msg.setContent("MUSIC-SEARCH");
         msg.setContentObject(new SongRequestInfo(genre, maxBudgetPerSong, minRating));
         this.myAgent.send(msg);
       } catch (Exception e) {
@@ -123,13 +121,13 @@ public class MusicSeeker extends Agent {
           Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
           return;
         }
-        
-        if(!"MUSIC-SEARCH".equals(msg.getContent())) {
-          Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
-          return;
-        }
-        
+
         try {
+          if(!msg.getContent().getClass().equals(HashSet.class)) {
+            Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
+            return;
+          }
+          
           HashSet<SongSellInfo> songListReturned = (HashSet<SongSellInfo>) msg.getContentObject();
           if(songListReturned == null || songListReturned.size() == 0) { 
             Logger.warn(agent, "%s isimli etmen boş liste gönderdi.", msg.getSender().getName());
@@ -173,15 +171,15 @@ public class MusicSeeker extends Agent {
       private Song.Genre genre;
       private float maxBudgetPerSongI;
       private int maxSongCountI;
-      private int minRatingI;
+      private float minRatingF;
       private float totalBudgetI;
       
-      public SelectMusic(Set<SongSellInfo> songOffers, Song.Genre genre, float maxBudgetPerSongI, int maxSongCountI, int minRatingI, float totalBudgetI) {
+      public SelectMusic(Set<SongSellInfo> songOffers, Song.Genre genre, float maxBudgetPerSongI, int maxSongCountI, float minRatingF, float totalBudgetI) {
         this.songsProposed = songOffers;
         this.genre = genre;
         this.maxBudgetPerSongI = maxBudgetPerSongI;
         this.maxSongCountI = maxSongCountI;
-        this.minRatingI = minRatingI;
+        this.minRatingF = minRatingF;
         this.totalBudgetI = totalBudgetI;
       }
 
@@ -196,7 +194,7 @@ public class MusicSeeker extends Agent {
           SongSellInfo oneOffer = iter.next();
           Song oneOfferSong = oneOffer.getSong();
           
-          if(!this.genre.equals(oneOffer.getSong().getGenre()) || oneOffer.getAvgRating() < this.minRatingI || oneOffer.getPrice() > this.maxBudgetPerSongI) {
+          if(!this.genre.equals(oneOffer.getSong().getGenre()) || oneOffer.getAvgRating() < this.minRatingF || oneOffer.getPrice() > this.maxBudgetPerSongI) {
             Logger.info(agent, "%s elendi, şartlar uygun değil.", oneOffer);
             continue;
           }
@@ -258,7 +256,6 @@ public class MusicSeeker extends Agent {
          for(SongSellInfo ssi: songsToBuyList) {
            ACLMessage msg = new ACLMessage(ACLMessage.AGREE);
            msg.addReceiver(ssi.getSellerAgent());
-           msg.setContent("BUY-MUSIC");
            try {
              msg.setContentObject(ssi);
              this.myAgent.send(msg);
@@ -292,13 +289,13 @@ public class MusicSeeker extends Agent {
           Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
           return;
         }
-        
-        if(!"BUY-MUSIC".equals(msg.getContent())) {
-          Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
-          return;
-        }
-        
+
         try {
+          if(!msg.getContentObject().getClass().equals(Tuple.class)) {
+            Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
+            return;
+          }
+          
           Tuple<String, SongSellInfo> urlRequest = (Tuple<String, SongSellInfo>) msg.getContentObject();
           final String url = urlRequest._1;
           final SongSellInfo songInfo = urlRequest._2;
@@ -318,7 +315,7 @@ public class MusicSeeker extends Agent {
             }
           };
          
-          SwingUtilities.invokeLater(addIt);   
+          SwingUtilities.invokeLater(addIt);
         } catch (Exception e) {
           Logger.error(agent, e, "Şarkıyı alamadım.");
         }
@@ -326,12 +323,21 @@ public class MusicSeeker extends Agent {
 
       @Override
       public boolean done() {
+        Runnable enableUI = new Runnable() { 
+          @Override
+          public void run() {
+            ui.enableUI();
+          }
+        };
+        
         if(System.currentTimeMillis() - startTime > TIMEOUT_MS) {
           Logger.warn(agent, "Timeout occured when waiting for answers!");
+          SwingUtilities.invokeLater(enableUI);
           return true;
         }
         
         if(answerCount >= knownAgentsAtTimeBehaviourStarted.size()) {
+          SwingUtilities.invokeLater(enableUI);
           return true;
         }
         

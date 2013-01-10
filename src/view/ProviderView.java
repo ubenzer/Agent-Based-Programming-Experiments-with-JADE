@@ -5,20 +5,24 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 
+import misc.Logger;
 import pojo.Song;
 import pojo.Song.Genre;
-
-import agent.MusicSeeker;
-
+import pojo.SongSellInfo;
+import util.Utils;
+import agent.MusicProvider;
 
 public class ProviderView extends JFrame {
 
@@ -28,17 +32,15 @@ public class ProviderView extends JFrame {
   JTextField txtPrice;
   JTextField txtRating;
   JComboBox txtGenre;
-  List console;
-  
-  public void addMessageToConsole(String message) {
-    console.add(message);
-  }
-  
+  List lstSold;
+  JList lstMusic;
+  DefaultListModel lstMusicList;
+
   /**
    * Create the frame.
    * @param runnable 
    */
-  public ProviderView(final MusicSeeker agent) {
+  public ProviderView(final MusicProvider agent) {
     addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosed(WindowEvent e) {
@@ -47,7 +49,7 @@ public class ProviderView extends JFrame {
     });
     setTitle("Provider: " + agent.getLocalName());
     setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    setBounds(100, 100, 700, 409);
+    setBounds(100, 100, 700, 561);
     contentPane = new JPanel();
     contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
     setContentPane(contentPane);
@@ -59,7 +61,7 @@ public class ProviderView extends JFrame {
     lblInfo.setVerticalAlignment(SwingConstants.TOP);
     contentPane.add(lblInfo);
     
-    JLabel lblInfo2 = new JLabel("Yeni Ekle");
+    JLabel lblInfo2 = new JLabel("Yeni Ekle:");
     lblInfo2.setBounds(422, 6, 63, 21);
     lblInfo2.setVerticalAlignment(SwingConstants.TOP);
     lblInfo2.setHorizontalAlignment(SwingConstants.LEFT);
@@ -96,28 +98,36 @@ public class ProviderView extends JFrame {
       @Override
       public void actionPerformed(ActionEvent e) {
         
-        btnAdd.setEnabled(false);
- 
-       Song.Genre genre = (Song.Genre)txtGenre.getSelectedItem();
-       int minRatingI, maxSongCountI;
-       float maxBudgetPerSongI, totalBudgetI;
+       Genre genre = (Song.Genre)txtGenre.getSelectedItem();
+       String artist = txtArtist.getText();
+       String musicName = txtMusicName.getText();
+       float rating, price;
        try {
-         minRatingI = Integer.parseInt(txtArtist.getText());
-         maxSongCountI = Integer.parseInt(txtRating.getText());
-         maxBudgetPerSongI = Float.parseFloat(txtMusicName.getText());
-         totalBudgetI = Float.parseFloat(txtPrice.getText());
-       } catch (NumberFormatException e1) {
-        console.add("Sayılar adam gibi diil.");
-        e1.printStackTrace();
-        return;
-       }
-       
-       if(totalBudgetI < maxBudgetPerSongI) {
-         console.add("Aga o paraya müziği ben nerden bulam?");
+         rating = Integer.parseInt(txtRating.getText());
+         price = Float.parseFloat(txtPrice.getText());
+       } catch (NumberFormatException ex) {
+         Logger.error(agent, ex, "Sayılar problemli.");
          return;
        }
        
-       agent.addBehaviour(agent.new FindAndPurchaseMusics(genre, maxBudgetPerSongI, maxSongCountI, minRatingI, totalBudgetI));
+       if(Utils.isBlank(artist) || Utils.isBlank(musicName) || rating < 0 || rating > 5 || price < 0) {
+         Logger.error(agent, "Eksik veriler var.");
+         return;
+       }
+       
+       txtArtist.setText("");
+       txtMusicName.setText("");
+       txtRating.setText("");
+       txtPrice.setText("");
+       
+       Song s = new Song(artist, musicName, genre);
+       SongSellInfo ssi = new SongSellInfo(rating, price, agent.getAID(), s);
+       
+       if(lstMusicList.contains(ssi)) { Logger.warn(agent, "Bu parça zaten var?"); return; }
+       
+       lstMusicList.addElement(ssi);
+       
+       agent.addBehaviour(agent.new AddSong(ssi));
       }
     });
     contentPane.add(btnAdd);
@@ -146,16 +156,47 @@ public class ProviderView extends JFrame {
     txtRating.setColumns(10);
     contentPane.add(txtRating);
     
-    console = new List();
-    console.setBounds(10, 27, 406, 350);
-    contentPane.add(console);
-    
     JButton btnDelete = new JButton("Seçiliyi Sil");
-    btnDelete.setBounds(422, 348, 272, 29);
+    btnDelete.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        if(lstMusic.getSelectedValue() == null) {
+          Logger.warn(agent, "Seçim yok?");
+          return;
+        }
+        
+        lstMusicList.removeElement(lstMusic.getSelectedValue());
+        agent.addBehaviour(agent.new RemoveSong((SongSellInfo) lstMusic.getSelectedValue()));
+      }
+    });
+    btnDelete.setBounds(6, 504, 410, 29);
     contentPane.add(btnDelete);
+    
+    JLabel lblInfo3 = new JLabel("Satılanlar:");
+    lblInfo3.setVerticalAlignment(SwingConstants.TOP);
+    lblInfo3.setHorizontalAlignment(SwingConstants.LEFT);
+    lblInfo3.setBounds(422, 228, 81, 21);
+    contentPane.add(lblInfo3);
+    
+    lstSold = new List();
+    lstSold.setBounds(430, 255, 264, 243);
+    contentPane.add(lstSold);
+    
+    lstMusic = new JList();
+    lstMusic.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    lstMusicList = new DefaultListModel();
+    
+    lstMusic.setBounds(16, 27, 394, 471);
+    lstMusic.setModel(lstMusicList);
+    
+    contentPane.add(lstMusic);
     
     for(Song.Genre g: Song.Genre.values()) {
       txtGenre.addItem(g);
     }
+  }
+
+  public void addBuyedItem(String msg) {
+    lstSold.add(msg);
   }
 }

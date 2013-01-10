@@ -2,6 +2,7 @@ package agent;
 
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -9,17 +10,26 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
 
-import java.io.IOException;
-import java.util.HashMap;
+import java.awt.EventQueue;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 
+import javax.swing.SwingUtilities;
+
+import misc.Logger;
 import pojo.Song;
+import pojo.SongRequestInfo;
+import pojo.SongSellInfo;
+import util.F.Tuple;
+import view.ProviderView;
 
 public class MusicProvider extends Agent {
 
-  final Map<Song.Genre, HashSet<Song>> songList = initSongList();
-
+  final private Set<SongSellInfo> songList = new HashSet<SongSellInfo>();
+  private MusicProvider agent = this;
+  private ProviderView ui;
+  
   @Override
   public void setup() {
     
@@ -32,69 +42,178 @@ public class MusicProvider extends Agent {
     
     try {
       DFService.register(this, df);
-      System.out.println("Broadcasting new music discovery agent, named: " + getName());
+      Logger.info(agent, "DF etmenine kayıt ediliyoré...");
     } catch (FIPAException e) {
-      e.printStackTrace();
+      Logger.error(agent, e, "DF etmenine kayıt yapamadık. :/");
     }
     
-    addSongToSellList(new Song("Scorpions", "Hurricane 2000", Song.Genre.ROCK));
+    EventQueue.invokeLater(new Runnable() {
+      @Override
+      public void run() {
+        Logger.info(agent, "İnsanlarla iletişim kurmak için UI yaratılıyor...");
+        try {
+          ui = new ProviderView(agent);
+          ui.setVisible(true);
+        } catch (Exception e) {
+          Logger.error(agent, e, "UI yaratılamadı!");
+        }
+      }
+    });
     
     addBehaviour(new CheckBuyerMessages());
   }
-  
-  private static Map<Song.Genre, HashSet<Song>> initSongList() {
-    Map<Song.Genre, HashSet<Song>> tbReturned = new HashMap<Song.Genre, HashSet<Song>>();
-    for(Song.Genre g: Song.Genre.values()) {
-      tbReturned.put(g, new HashSet<Song>());
-    }
-    return tbReturned;
-  }
 
-  public void addSongToSellList(Song s) {
-    this.songList.get(s.getGenre()).add(s);
-  }
-  
-  public boolean removeSongFromSellList(Song s) {
-    return this.songList.get(s.getGenre()).remove(s);
+  public ProviderView getUi() {
+    return ui;
   }
   
   private class CheckBuyerMessages extends CyclicBehaviour {
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = -1100608993864604482L;
+    @Override
+    public void action() {
+      Logger.info(agent, "Şarkı satın alma veya sorgulama istekleri için bekleniyor...");
+      ACLMessage msg = this.myAgent.receive();
+      if (msg == null) { this.block(); return; }
+      
+      try {
+        Object something = msg.getContentObject();
+        if(something.getClass().equals(SongRequestInfo.class)) {
+          agent.addBehaviour(agent.new SongSearch((SongRequestInfo)something, msg));
+        }
+        
+        if(something.getClass().equals(SongSellInfo.class)) {
+          agent.addBehaviour(agent.new BuySong((SongSellInfo)something, msg));
+        }
+        
+        Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
+      } catch (UnreadableException e) {
+        Logger.error(agent, e, "Mesaj okunamadı.");
+      }
+    }
+  }
+  
+  private class SongSearch extends OneShotBehaviour {
 
-    public CheckBuyerMessages() {
+    SongRequestInfo sri;
+    ACLMessage msg;
+    public SongSearch(SongRequestInfo sri, ACLMessage msg) {
+      this.sri = sri;
+      this.msg = msg;
+    }
+
+    @Override
+    public void action() {
+      Logger.info(agent, "Verilen kriterlere göre şarkı aranıyor...");
+      HashSet<SongSellInfo> tbReturned = new HashSet<SongSellInfo>();
+      
+      for(SongSellInfo ssi: agent.songList) {
+        Song song = ssi.getSong();
+        
+        if(sri.genre != null && !song.getGenre().equals(sri.genre)) {
+          continue;
+        }
+        if(sri.maxPricePerSong < ssi.getPrice()) {
+          continue;
+        }
+        if(sri.minRating > ssi.getAvgRating()) {
+          continue;
+        }
+        
+        tbReturned.add(ssi.clone());
+      }
+      
+      ACLMessage reply = msg.createReply();
+
+      if(tbReturned.size() == 0) {
+        reply.setPerformative(ACLMessage.REFUSE);
+      } else {
+        reply.setPerformative(ACLMessage.PROPOSE);
+        try {
+          reply.setContentObject(tbReturned);
+          this.myAgent.send(reply);
+        } catch (Exception e) {
+          Logger.error(agent, e, "Şarkı arama sonucu gönderilemedi.");
+        }
+      }
+    }
+  }
+  
+  private class BuySong extends OneShotBehaviour {
+
+    SongSellInfo ssi;
+    ACLMessage msg;
+    public BuySong(SongSellInfo ssi, ACLMessage msg) {
+      this.ssi = ssi;
+      this.msg = msg;
     }
 
     @Override
     public void action() {
       
-      System.out.println(this.myAgent.getName() + " is checking for messages... ");
-      ACLMessage msg = this.myAgent.receive();
-      if (msg == null) { return; }
-      
       ACLMessage reply = msg.createReply();
-      Song.Genre requestedGenre = null;
-      try {
-        requestedGenre = (Song.Genre)msg.getContentObject();
-      } catch (UnreadableException e) {
-        e.printStackTrace();
-      }
-      
-      if(requestedGenre == null || MusicProvider.this.songList.get(requestedGenre).size() == 0) {
+      if(!agent.songList.contains(ssi)) {
         reply.setPerformative(ACLMessage.REFUSE);
       } else {
         reply.setPerformative(ACLMessage.PROPOSE);
-        try {
-          reply.setContentObject(MusicProvider.this.songList.get(requestedGenre));
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
       }
-   
-      this.myAgent.send(reply);
+
+      Tuple<String, SongSellInfo> urlRequest = new Tuple<String, SongSellInfo>(generateRandomUrl(), ssi);
+      try {
+        reply.setContentObject(urlRequest);
+        this.myAgent.send(reply);
+        
+        Logger.info(agent, "Şarkı satıldı. Agent: %s Şarkı: %s - %s", msg.getSender().getName(), ssi.getSong().getArtist(), ssi.getSong().getName());
+        
+        Runnable addIt = new Runnable() { 
+          @Override
+          public void run() {
+            ui.addBuyedItem("Agent: " + msg.getSender().getName() + " Song: " + ssi.getSong().getArtist() + " - " + ssi.getSong().getName());
+          }
+        };
+       
+        SwingUtilities.invokeLater(addIt);
+      } catch (Exception e) {
+        Logger.error(agent, e, "Şarkı satın alma sonucu gönderilemedi.");
+      }
     }
+
+    private String generateRandomUrl() {
+      return "http://musicdownload.com/song/" + new Random().nextInt();
+    }
+  }
+  
+  public class RemoveSong extends OneShotBehaviour {
+    
+    private SongSellInfo ssi;
+    public RemoveSong(SongSellInfo ssi) {
+      this.ssi = ssi;
+    }
+    
+    @Override
+    public void action() {
+      agent.songList.remove(ssi);
+    }
+  }
+  
+  public class AddSong extends OneShotBehaviour {
+
+    private SongSellInfo ssi;
+    public AddSong(SongSellInfo ssi) {
+      this.ssi = ssi;
+    }
+    
+    @Override
+    public void action() {
+      agent.songList.add(ssi);
+    }
+  }
+  
+  public class ShutdownAgent extends OneShotBehaviour {
+
+    @Override
+    public void action() {
+      agent.doDelete();
+    }
+
   }
 }

@@ -14,15 +14,12 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 
+import misc.Logger;
 import pojo.Song;
-import pojo.Song.Genre;
-
 import agent.MusicSeeker;
-
 
 public class MusicView extends JFrame {
 
-  private static final long serialVersionUID = -1778944522529076269L;
   JPanel contentPane;
   JTextField minRating;
   JTextField maxBudgetPerSong;
@@ -30,6 +27,7 @@ public class MusicView extends JFrame {
   JTextField maxSongCount;
   JComboBox musicType;
   List console;
+  JButton search;
   
   public void addMessageToConsole(String message) {
     console.add(message);
@@ -91,7 +89,7 @@ public class MusicView extends JFrame {
     lblMaxSongCount.setBounds(16, 165, 170, 16);
     contentPane.add(lblMaxSongCount);
     
-    final JButton search = new JButton("Buluve");
+    search = new JButton("Buluve");
     search.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -106,21 +104,24 @@ public class MusicView extends JFrame {
          maxSongCountI = Integer.parseInt(maxSongCount.getText());
          maxBudgetPerSongI = Float.parseFloat(maxBudgetPerSong.getText());
          totalBudgetI = Float.parseFloat(totalBudget.getText());
-       } catch (NumberFormatException e1) {
+       } catch (NumberFormatException ex) {
         console.add("Sayılar adam gibi diil.");
-        e1.printStackTrace();
+        Logger.error(agent, ex, "Sayılar problemli.");
         return;
        }
        
        if(totalBudgetI < maxBudgetPerSongI) {
          console.add("Aga o paraya müziği ben nerden bulam?");
+         Logger.error(agent, "Toplam bütçe bir şarkınınkinden küçük.");
          return;
        }
+       
+       disableUI();
        
        agent.addBehaviour(agent.new FindAndPurchaseMusics(genre, maxBudgetPerSongI, maxSongCountI, minRatingI, totalBudgetI));
       }
     });
-    search.setBounds(474, 160, 117, 29);
+    search.setBounds(431, 160, 170, 29);
     contentPane.add(search);
     
     musicType = new JComboBox();
@@ -155,4 +156,24 @@ public class MusicView extends JFrame {
       musicType.addItem(g);
     }
   }
+
+  public void enableUI() {
+    minRating.setEnabled(true);
+    maxBudgetPerSong.setEnabled(true);
+    totalBudget.setEnabled(true);
+    maxSongCount.setEnabled(true);
+    musicType.setEnabled(true);
+    search.setEnabled(true);
+  }
+  
+  public void disableUI() {
+    minRating.setEnabled(false);
+    maxBudgetPerSong.setEnabled(false);
+    totalBudget.setEnabled(false);
+    maxSongCount.setEnabled(false);
+    musicType.setEnabled(false);
+    search.setEnabled(false);
+  }
+  
+  
 }
