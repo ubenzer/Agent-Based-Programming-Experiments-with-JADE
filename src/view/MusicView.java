@@ -93,8 +93,7 @@ public class MusicView extends JFrame {
     search.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        
-        search.setEnabled(false);
+       search.setEnabled(false);
  
        Song.Genre genre = (Song.Genre)musicType.getSelectedItem();
        int minRatingI, maxSongCountI;
@@ -104,20 +103,21 @@ public class MusicView extends JFrame {
          maxSongCountI = Integer.parseInt(maxSongCount.getText());
          maxBudgetPerSongI = Float.parseFloat(maxBudgetPerSong.getText());
          totalBudgetI = Float.parseFloat(totalBudget.getText());
+         
+         if(maxSongCountI <= 0 || minRatingI < 0 || minRatingI > 5 || totalBudgetI < 0 || maxBudgetPerSongI < 0 || totalBudgetI < maxBudgetPerSongI) {
+           Logger.warn(agent, "Sayılarda bir sorun var.");
+           enableUI();
+           return;
+         }
        } catch (NumberFormatException ex) {
         console.add("Sayılar adam gibi diil.");
         Logger.error(agent, ex, "Sayılar problemli.");
+        enableUI();
         return;
        }
        
-       if(totalBudgetI < maxBudgetPerSongI) {
-         console.add("Aga o paraya müziği ben nerden bulam?");
-         Logger.error(agent, "Toplam bütçe bir şarkınınkinden küçük.");
-         return;
-       }
-       
        disableUI();
-       
+       console.removeAll();
        agent.addBehaviour(agent.new FindAndPurchaseMusics(genre, maxBudgetPerSongI, maxSongCountI, minRatingI, totalBudgetI));
       }
     });

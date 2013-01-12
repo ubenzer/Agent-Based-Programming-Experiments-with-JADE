@@ -36,6 +36,7 @@ public class MusicProvider extends Agent {
     /* Broadcast this agent */
     ServiceDescription sd = new ServiceDescription();
     sd.setType("MUSIC-DISCOVERY");
+    sd.setName(agent.getName());
     
     DFAgentDescription df = new DFAgentDescription();
     df.addServices(sd);
@@ -79,10 +80,12 @@ public class MusicProvider extends Agent {
         Object something = msg.getContentObject();
         if(something.getClass().equals(SongRequestInfo.class)) {
           agent.addBehaviour(agent.new SongSearch((SongRequestInfo)something, msg));
+          return;
         }
         
         if(something.getClass().equals(SongSellInfo.class)) {
           agent.addBehaviour(agent.new BuySong((SongSellInfo)something, msg));
+          return;
         }
         
         Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
@@ -112,12 +115,12 @@ public class MusicProvider extends Agent {
         if(sri.genre != null && !song.getGenre().equals(sri.genre)) {
           continue;
         }
-        if(sri.maxPricePerSong < ssi.getPrice()) {
-          continue;
-        }
-        if(sri.minRating > ssi.getAvgRating()) {
-          continue;
-        }
+//        if(sri.maxPricePerSong < ssi.getPrice()) {
+//          continue;
+//        }
+//        if(sri.minRating > ssi.getAvgRating()) {
+//          continue;
+//        }
         
         tbReturned.add(ssi.clone());
       }
@@ -128,12 +131,12 @@ public class MusicProvider extends Agent {
         reply.setPerformative(ACLMessage.REFUSE);
       } else {
         reply.setPerformative(ACLMessage.PROPOSE);
-        try {
-          reply.setContentObject(tbReturned);
-          this.myAgent.send(reply);
-        } catch (Exception e) {
-          Logger.error(agent, e, "Şarkı arama sonucu gönderilemedi.");
-        }
+      }
+      try {
+        reply.setContentObject(tbReturned);
+        this.myAgent.send(reply);
+      } catch (Exception e) {
+        Logger.error(agent, e, "Şarkı arama sonucu gönderilemedi.");
       }
     }
   }
@@ -167,7 +170,7 @@ public class MusicProvider extends Agent {
         Runnable addIt = new Runnable() { 
           @Override
           public void run() {
-            ui.addBuyedItem("Agent: " + msg.getSender().getName() + " Song: " + ssi.getSong().getArtist() + " - " + ssi.getSong().getName());
+            ui.addBuyedItem("@" + msg.getSender().getLocalName() + " [" + ssi.getSong().getArtist() + " - " + ssi.getSong().getName() + "]");
           }
         };
        
@@ -178,7 +181,7 @@ public class MusicProvider extends Agent {
     }
 
     private String generateRandomUrl() {
-      return "http://musicdownload.com/song/" + new Random().nextInt();
+      return "http://musicdownload.com/song/" + new Random().nextInt(9999);
     }
   }
   

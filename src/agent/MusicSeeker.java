@@ -61,7 +61,7 @@ public class MusicSeeker extends Agent {
   public final class FindAndPurchaseMusics extends SequentialBehaviour {
     private Set<DFAgentDescription> knownAgentsAtTimeBehaviourStarted;
     private Set<SongSellInfo> songOffers = new HashSet<SongSellInfo>();
-    private Set<SongSellInfo> songsToBuy;
+    private Set<SongSellInfo> songsToBuy = new HashSet<SongSellInfo>();
     
     public FindAndPurchaseMusics(Song.Genre genre, float maxBudgetPerSongI, int maxSongCountI, float minRatingI, float totalBudgetI) {
       knownAgentsAtTimeBehaviourStarted = (HashSet<DFAgentDescription>) agent.knownMusicDiscoveryServiceList.clone();
@@ -115,16 +115,16 @@ public class MusicSeeker extends Agent {
         ACLMessage msg = this.myAgent.receive();
         if (msg == null) { block(WAIT_MS); return; }
         
-        answerCount++;
-        
-        if(msg.getPerformative() == ACLMessage.REFUSE) {
-          Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
-          return;
-        }
-
         try {
-          if(!msg.getContent().getClass().equals(HashSet.class)) {
+          if(!msg.getContentObject().getClass().equals(HashSet.class)) {
             Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
+            return;
+          }
+          
+          answerCount++;
+          
+          if(msg.getPerformative() == ACLMessage.REFUSE) {
+            Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
             return;
           }
           
@@ -153,7 +153,7 @@ public class MusicSeeker extends Agent {
       @Override
       public boolean done() {
         if(System.currentTimeMillis() - startTime > TIMEOUT_MS) {
-          Logger.warn(agent, "Timeout occured when waiting for answers!");
+          Logger.warn(agent, "Cevap için beklerken zaman aşımı oldu.");
           return true;
         }
         
@@ -185,62 +185,59 @@ public class MusicSeeker extends Agent {
 
       @Override
       public void action() {
-        HashMap<SongSellInfo, Float> filteredSongList = new HashMap<SongSellInfo, Float>();
+        Map<Song, Float> ratingMap = new HashMap<Song, Float>();
+        Map<Song, Float> priceMap = new HashMap<Song, Float>();
+        Map<Song, SongSellInfo> ssiMap = new HashMap<Song, SongSellInfo>();
+        for(SongSellInfo ssi: songsProposed) {
+          Song song = ssi.getSong();
+          
+          Float maxRating = ratingMap.get(song);
+          Float minPrice = priceMap.get(song);
+          
+          if(maxRating == null || maxRating < ssi.getAvgRating()) {
+            ratingMap.put(song, ssi.getAvgRating());
+          }
+          
+          if(minPrice == null || minPrice > ssi.getPrice()) {
+            priceMap.put(song, ssi.getPrice());
+            ssiMap.put(song, ssi);
+          }
+        }
+        
+        Set<SongSellInfo> filteredSongList = new HashSet<SongSellInfo>();
         float totalPrice = 0;
         
         /* Elaminate unmatched songs and find min prica and max rating for valid songs */
-        Iterator<SongSellInfo> iter = songsProposed.iterator();
-        while (iter.hasNext()) {
-          SongSellInfo oneOffer = iter.next();
-          Song oneOfferSong = oneOffer.getSong();
+        for (SongSellInfo ssi: songsProposed) {
+          Song song = ssi.getSong();
           
-          if(!this.genre.equals(oneOffer.getSong().getGenre()) || oneOffer.getAvgRating() < this.minRatingF || oneOffer.getPrice() > this.maxBudgetPerSongI) {
-            Logger.info(agent, "%s elendi, şartlar uygun değil.", oneOffer);
+          if(filteredSongList.contains(ssi) || !this.genre.equals(ssi.getSong().getGenre()) || ratingMap.get(song) < this.minRatingF || priceMap.get(song) > this.maxBudgetPerSongI) {
             continue;
           }
           
-          SongSellInfo tbAdded = oneOffer;
-          Float maxRating = oneOffer.getAvgRating();
-          
-          Iterator<SongSellInfo> innerIter = songsProposed.iterator();
-          while (innerIter.hasNext()) {
-            SongSellInfo oneOfferInner = iter.next();
-            Song oneOfferSongInner = oneOffer.getSong();
-            
-            if(oneOfferInner.equals(oneOffer) || !oneOfferSongInner.equals(oneOfferSong)) {
-              continue;
-            }
-            
-            if(maxRating < oneOfferInner.getAvgRating()) {
-              maxRating = oneOfferInner.getAvgRating();
-            }
-            if(oneOfferInner.getPrice() < tbAdded.getPrice()) {
-              tbAdded = oneOfferInner;
-            }
-          }
-          filteredSongList.put(tbAdded, maxRating);
-          totalPrice += tbAdded.getPrice();
+          filteredSongList.add(ssiMap.get(song));
+          totalPrice += ssiMap.get(song).getPrice();
         }
         
         if(filteredSongList.size() > this.maxSongCountI) {
-          Iterator<Map.Entry<SongSellInfo, Float>> i = filteredSongList.entrySet().iterator();
+          Iterator<SongSellInfo> i = filteredSongList.iterator();
           while (filteredSongList.size() > this.maxSongCountI) {
-            Map.Entry<SongSellInfo, Float> itemToDelete = i.next();
-            totalPrice -= itemToDelete.getKey().getPrice();
+            SongSellInfo itemToDelete = i.next();
+            totalPrice -= itemToDelete.getPrice();
             i.remove();
           }
         }
         
         if(totalPrice > this.totalBudgetI) {
-          Iterator<Map.Entry<SongSellInfo, Float>> i = filteredSongList.entrySet().iterator();
+          Iterator<SongSellInfo> i = filteredSongList.iterator();
           while (totalPrice > this.totalBudgetI) {
-            Map.Entry<SongSellInfo, Float> itemToDelete = i.next();
-            totalPrice -= itemToDelete.getKey().getPrice();
+            SongSellInfo itemToDelete = i.next();
+            totalPrice -= itemToDelete.getPrice();
             i.remove();
           }
         }
         
-        songsToBuy = filteredSongList.keySet();
+        songsToBuy.addAll(filteredSongList);
       }
     }
   
@@ -252,6 +249,7 @@ public class MusicSeeker extends Agent {
 
       @Override
       public void action() {
+        if(songsToBuyList == null || songsToBuyList.size() == 0) { Logger.warn(agent, "Hiç müzik bulunamadı."); return; }
          Logger.info(agent, "Satın alınmasına karar verilen müziklerin siparişi veriliyor...");
          for(SongSellInfo ssi: songsToBuyList) {
            ACLMessage msg = new ACLMessage(ACLMessage.AGREE);
@@ -267,32 +265,34 @@ public class MusicSeeker extends Agent {
     }
     
     private class ListenBuyMusicAnswers extends SimpleBehaviour {
-      private int answerCount = 0;
+      private int songCount = 0;
       private final long TIMEOUT_MS = 15000;
       private final long WAIT_MS = 1000;
-      private final long startTime;
+      private long startTime;
+      private boolean isFirstRun = true;
       
       public ListenBuyMusicAnswers() {
         super();
-        startTime = System.currentTimeMillis();
       }
       
       @Override
       public void action() {
-        Logger.info(agent, "Müzik satın alma istekleri sonucu bekleniyor... (%s / %s)", answerCount, songsToBuy.size());
+        if(isFirstRun) { startTime = System.currentTimeMillis(); } 
+        if(songsToBuy.size() == 0) { return; }
+        Logger.info(agent, "Müzik satın alma istekleri sonucu bekleniyor... (%s / %s)", songCount, songsToBuy.size());
         ACLMessage msg = this.myAgent.receive();
         if (msg == null) { block(WAIT_MS); return; }
         
-        answerCount++;
-        
-        if(msg.getPerformative() == ACLMessage.REFUSE) {
-          Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
-          return;
-        }
-
         try {
           if(!msg.getContentObject().getClass().equals(Tuple.class)) {
             Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
+            return;
+          }
+          
+          songCount++;
+          
+          if(msg.getPerformative() == ACLMessage.REFUSE) {
+            Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
             return;
           }
           
@@ -304,14 +304,12 @@ public class MusicSeeker extends Agent {
             return;
           }
           
-          Logger.info(agent, "Song: %s - %s R: %s P: %s - URL: %s", songInfo.getSong().getArtist(), songInfo.getSong().getName(), songInfo.getAvgRating(), songInfo.getPrice(), url);
+          Logger.info(agent, "Satın alındı: %s [URL: %s]", songInfo.toString(), url);
           
           Runnable addIt = new Runnable() { 
             @Override
             public void run() {
-              ui.addMessageToConsole("Agent: " + songInfo.getSellerAgent().getName() + " " +
-                                     "Song: " + songInfo.getSong().getArtist() + " - " + songInfo.getSong().getName() + " " +
-                                     "R: " + songInfo.getAvgRating() + " P:" + songInfo.getPrice() + " URL: " + url);
+              ui.addMessageToConsole(songInfo.toString() + " [URL: " + url + "]");
             }
           };
          
@@ -331,12 +329,12 @@ public class MusicSeeker extends Agent {
         };
         
         if(System.currentTimeMillis() - startTime > TIMEOUT_MS) {
-          Logger.warn(agent, "Timeout occured when waiting for answers!");
+          Logger.warn(agent, "Cevap için beklerken zaman aşımı oldu.");
           SwingUtilities.invokeLater(enableUI);
           return true;
         }
         
-        if(answerCount >= knownAgentsAtTimeBehaviourStarted.size()) {
+        if(songCount >= songsToBuy.size()) {
           SwingUtilities.invokeLater(enableUI);
           return true;
         }
@@ -354,7 +352,7 @@ public class MusicSeeker extends Agent {
 
     @Override
     protected void onTick() {
-      Logger.info(agent, "Müzik satma hizmeti sunan etmen listesi güncelleniyor...");
+      //Logger.info(agent, "Müzik satma hizmeti sunan etmen listesi güncelleniyor...");
       ServiceDescription sd = new ServiceDescription();
       sd.setType("MUSIC-DISCOVERY");
       DFAgentDescription df = new DFAgentDescription();
@@ -365,7 +363,7 @@ public class MusicSeeker extends Agent {
         for(DFAgentDescription dfad: result) {
           agent.knownMusicDiscoveryServiceList.add(dfad);
         }
-        Logger.info(agent, "Müzik satma hizmeti sunan etmenler güncelledi. %s etmen bulundu.", result.length);
+        //Logger.info(agent, "Müzik satma hizmeti sunan etmenler güncelledi. %s etmen bulundu.", result.length);
       } catch (FIPAException e) {
         Logger.error(agent,  e, "Müzik satma hizmeti sunan etmenler güncellnirken hata oluştu.");
       }

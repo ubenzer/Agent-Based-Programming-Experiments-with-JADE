@@ -160,13 +160,15 @@ public class ProviderView extends JFrame {
     btnDelete.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        if(lstMusic.getSelectedValue() == null) {
+        SongSellInfo ssi = (SongSellInfo) lstMusic.getSelectedValue();
+        
+        if(ssi == null) {
           Logger.warn(agent, "Seçim yok?");
           return;
         }
         
-        lstMusicList.removeElement(lstMusic.getSelectedValue());
-        agent.addBehaviour(agent.new RemoveSong((SongSellInfo) lstMusic.getSelectedValue()));
+        lstMusicList.removeElement(ssi);
+        agent.addBehaviour(agent.new RemoveSong(ssi));
       }
     });
     btnDelete.setBounds(6, 504, 410, 29);

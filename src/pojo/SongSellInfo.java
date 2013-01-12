@@ -37,13 +37,15 @@ public class SongSellInfo implements Serializable, Cloneable {
  
   @Override
   public String toString() {
-    return "SongSellInfo [avgRating=" + this.avgRating + ", price=" + this.price + ", sellerAgent=" + this.sellerAgent + ", song=" + this.song + "]";
+    return this.song + " [R:" + this.avgRating + "] [P:" + this.price + "] @" + this.sellerAgent.getLocalName();
   }
-  
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
+    result = prime * result + Float.floatToIntBits(this.avgRating);
+    result = prime * result + Float.floatToIntBits(this.price);
     result = prime * result + ((this.sellerAgent == null) ? 0 : this.sellerAgent.hashCode());
     result = prime * result + ((this.song == null) ? 0 : this.song.hashCode());
     return result;
@@ -61,6 +63,12 @@ public class SongSellInfo implements Serializable, Cloneable {
       return false;
     }
     SongSellInfo other = (SongSellInfo) obj;
+    if (Float.floatToIntBits(this.avgRating) != Float.floatToIntBits(other.avgRating)) {
+      return false;
+    }
+    if (Float.floatToIntBits(this.price) != Float.floatToIntBits(other.price)) {
+      return false;
+    }
     if (this.sellerAgent == null) {
       if (other.sellerAgent != null) {
         return false;
@@ -77,11 +85,8 @@ public class SongSellInfo implements Serializable, Cloneable {
     }
     return true;
   }
-  
   @Override
   public SongSellInfo clone() {
     return new SongSellInfo(this.getAvgRating(), this.getPrice(), this.getSellerAgent(), this.getSong());
   }
-  
- 
 }

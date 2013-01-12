@@ -1,6 +1,8 @@
 package pojo;
 
-public class Song implements Cloneable {
+import jade.util.leap.Serializable;
+
+public class Song implements Cloneable, Serializable {
 
   private final String artist;
   private final String name;
@@ -25,7 +27,7 @@ public class Song implements Cloneable {
 
   @Override
   public String toString() {
-    return "Song [artist=" + this.artist + ", name=" + this.name + ", genre=" + this.genre + "]";
+    return this.artist + " - " + this.name + " [" + this.genre + "]";
   }
 
   @Override

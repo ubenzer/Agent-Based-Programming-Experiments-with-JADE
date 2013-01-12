@@ -47,11 +47,11 @@ public class Logger {
   
   static String format(Agent agent, String msg, Object... args) {
     try {
+      if(agent != null) {
+        msg = "Agent: " + agent.getLocalName() + " - " + msg;
+      }
       if (args != null && args.length > 0) {
         return String.format(msg, args);
-      }
-      if(agent != null) {
-        msg = "Agent: " + agent.getLocalName() + " - ";
       }
       return msg;
     } catch (Exception e) {
