@@ -41,6 +41,7 @@ public class ProviderView extends JFrame {
    * @param runnable 
    */
   public ProviderView(final MusicProvider agent) {
+    setResizable(false);
     addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosed(WindowEvent e) {

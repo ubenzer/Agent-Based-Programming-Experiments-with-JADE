@@ -38,6 +38,7 @@ public class MusicView extends JFrame {
    * @param runnable 
    */
   public MusicView(final MusicSeeker agent) {
+    setResizable(false);
     addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosed(WindowEvent e) {
