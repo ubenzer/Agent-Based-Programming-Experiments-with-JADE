@@ -215,8 +215,12 @@ public class MusicProvider extends Agent {
 
     @Override
     public void action() {
+      try {
+        DFService.deregister(agent);
+      } catch (FIPAException e) {
+        Logger.error(agent, e, "Agent DF'den silinemedi.");
+      }
       agent.doDelete();
     }
-
   }
 }
