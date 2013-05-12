@@ -53,44 +53,44 @@ public class MusicView extends JFrame {
     setContentPane(contentPane);
     contentPane.setLayout(null);
     
-    JLabel lblInfo = new JLabel("Merhaba. Ben senin müzik bulucu etmeninim. Bana aşağıdaki bilgileri ver.");
+    JLabel lblInfo = new JLabel("Hi. I am your music seeker agent. I check for all music providers and buy the cheapest one, highest rated songs.");
     lblInfo.setHorizontalAlignment(SwingConstants.CENTER);
     lblInfo.setVerticalAlignment(SwingConstants.TOP);
     lblInfo.setBounds(6, 6, 628, 21);
     contentPane.add(lblInfo);
     
-    JLabel lblInfo2 = new JLabel("Ben senin için tüm müzik satıcılarını gezerim.");
+    JLabel lblInfo2 = new JLabel("Fill the following:");
     lblInfo2.setVerticalAlignment(SwingConstants.TOP);
     lblInfo2.setHorizontalAlignment(SwingConstants.CENTER);
     lblInfo2.setBounds(6, 23, 628, 21);
     contentPane.add(lblInfo2);
     
-    JLabel lblGenre = new JLabel("Aradığın müzik tipi:");
+    JLabel lblGenre = new JLabel("Genre:");
     lblGenre.setHorizontalAlignment(SwingConstants.RIGHT);
     lblGenre.setBounds(16, 56, 170, 16);
     contentPane.add(lblGenre);
     
-    JLabel lblMinRating = new JLabel("En az rating:");
+    JLabel lblMinRating = new JLabel("Min rating:");
     lblMinRating.setHorizontalAlignment(SwingConstants.RIGHT);
     lblMinRating.setBounds(16, 81, 170, 16);
     contentPane.add(lblMinRating);
     
-    JLabel lblPricePerMusic = new JLabel("Müzik başına max bütçe:");
+    JLabel lblPricePerMusic = new JLabel("Max price per song:");
     lblPricePerMusic.setHorizontalAlignment(SwingConstants.RIGHT);
     lblPricePerMusic.setBounds(16, 109, 170, 16);
     contentPane.add(lblPricePerMusic);
     
-    JLabel lblTotalBudget = new JLabel("Toplam bütçe:");
+    JLabel lblTotalBudget = new JLabel("Max budget:");
     lblTotalBudget.setHorizontalAlignment(SwingConstants.RIGHT);
     lblTotalBudget.setBounds(16, 137, 170, 16);
     contentPane.add(lblTotalBudget);
     
-    JLabel lblMaxSongCount = new JLabel("Max. şarkı sayısı:");
+    JLabel lblMaxSongCount = new JLabel("Max song count:");
     lblMaxSongCount.setHorizontalAlignment(SwingConstants.RIGHT);
     lblMaxSongCount.setBounds(16, 165, 170, 16);
     contentPane.add(lblMaxSongCount);
     
-    search = new JButton("Buluve");
+    search = new JButton("Find!");
     search.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -106,13 +106,13 @@ public class MusicView extends JFrame {
          totalBudgetI = Float.parseFloat(totalBudget.getText());
          
          if(maxSongCountI <= 0 || minRatingI < 0 || minRatingI > 5 || totalBudgetI < 0 || maxBudgetPerSongI < 0 || totalBudgetI < maxBudgetPerSongI) {
-           Logger.warn(agent, "Sayılarda bir sorun var.");
+           Logger.warn(agent, "Inputs are logically invalid.");
            enableUI();
            return;
          }
        } catch (NumberFormatException ex) {
-        console.add("Sayılar adam gibi diil.");
-        Logger.error(agent, ex, "Sayılar problemli.");
+        console.add("Numbers are not numbers.");
+        Logger.error(agent, ex, "Numbers are not numbers.");
         enableUI();
         return;
        }

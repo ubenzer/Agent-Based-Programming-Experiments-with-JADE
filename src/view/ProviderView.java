@@ -56,19 +56,19 @@ public class ProviderView extends JFrame {
     setContentPane(contentPane);
     contentPane.setLayout(null);
     
-    JLabel lblInfo = new JLabel("Satışta olan müzikler:");
+    JLabel lblInfo = new JLabel("Musics on sale:");
     lblInfo.setBounds(6, 6, 152, 21);
     lblInfo.setHorizontalAlignment(SwingConstants.CENTER);
     lblInfo.setVerticalAlignment(SwingConstants.TOP);
     contentPane.add(lblInfo);
     
-    JLabel lblInfo2 = new JLabel("Yeni Ekle:");
+    JLabel lblInfo2 = new JLabel("Add new:");
     lblInfo2.setBounds(422, 6, 63, 21);
     lblInfo2.setVerticalAlignment(SwingConstants.TOP);
     lblInfo2.setHorizontalAlignment(SwingConstants.LEFT);
     contentPane.add(lblInfo2);
     
-    JLabel lblGenre = new JLabel("Müzik tipi:");
+    JLabel lblGenre = new JLabel("Genre:");
     lblGenre.setBounds(422, 39, 81, 16);
     lblGenre.setHorizontalAlignment(SwingConstants.RIGHT);
     contentPane.add(lblGenre);
@@ -78,12 +78,12 @@ public class ProviderView extends JFrame {
     lblRating.setHorizontalAlignment(SwingConstants.RIGHT);
     contentPane.add(lblRating);
     
-    JLabel lblPrice = new JLabel("Fiyat:");
+    JLabel lblPrice = new JLabel("Price:");
     lblPrice.setBounds(422, 129, 81, 16);
     lblPrice.setHorizontalAlignment(SwingConstants.RIGHT);
     contentPane.add(lblPrice);
     
-    JLabel lblMusicName = new JLabel("Müzik adı:");
+    JLabel lblMusicName = new JLabel("Song name:");
     lblMusicName.setBounds(422, 99, 81, 16);
     lblMusicName.setHorizontalAlignment(SwingConstants.RIGHT);
     contentPane.add(lblMusicName);
@@ -93,7 +93,7 @@ public class ProviderView extends JFrame {
     lblArtist.setHorizontalAlignment(SwingConstants.RIGHT);
     contentPane.add(lblArtist);
     
-    final JButton btnAdd = new JButton("Ekle");
+    final JButton btnAdd = new JButton("Add");
     btnAdd.setBounds(515, 184, 179, 29);
     btnAdd.addActionListener(new ActionListener() {
       @Override
@@ -107,12 +107,12 @@ public class ProviderView extends JFrame {
          rating = Integer.parseInt(txtRating.getText());
          price = Float.parseFloat(txtPrice.getText());
        } catch (NumberFormatException ex) {
-         Logger.error(agent, ex, "Sayılar problemli.");
+         Logger.error(agent, ex, "Numbers are not numbers.");
          return;
        }
        
        if(Utils.isBlank(artist) || Utils.isBlank(musicName) || rating < 0 || rating > 5 || price < 0) {
-         Logger.error(agent, "Eksik veriler var.");
+         Logger.error(agent, "There is some missing information.");
          return;
        }
        
@@ -124,7 +124,7 @@ public class ProviderView extends JFrame {
        Song s = new Song(artist, musicName, genre);
        SongSellInfo ssi = new SongSellInfo(rating, price, agent.getAID(), s);
        
-       if(lstMusicList.contains(ssi)) { Logger.warn(agent, "Bu parça zaten var?"); return; }
+       if(lstMusicList.contains(ssi)) { Logger.warn(agent, "Duplicate song?"); return; }
        
        lstMusicList.addElement(ssi);
        
@@ -157,14 +157,14 @@ public class ProviderView extends JFrame {
     txtRating.setColumns(10);
     contentPane.add(txtRating);
     
-    JButton btnDelete = new JButton("Seçiliyi Sil");
+    JButton btnDelete = new JButton("Delete Selected");
     btnDelete.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
         SongSellInfo ssi = (SongSellInfo) lstMusic.getSelectedValue();
         
         if(ssi == null) {
-          Logger.warn(agent, "Seçim yok?");
+          Logger.warn(agent, "Nothing is selected.");
           return;
         }
         
@@ -175,7 +175,7 @@ public class ProviderView extends JFrame {
     btnDelete.setBounds(6, 504, 410, 29);
     contentPane.add(btnDelete);
     
-    JLabel lblInfo3 = new JLabel("Satılanlar:");
+    JLabel lblInfo3 = new JLabel("Sold:");
     lblInfo3.setVerticalAlignment(SwingConstants.TOP);
     lblInfo3.setHorizontalAlignment(SwingConstants.LEFT);
     lblInfo3.setBounds(422, 228, 81, 21);

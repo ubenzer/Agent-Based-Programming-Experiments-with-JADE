@@ -41,12 +41,12 @@ public class MusicSeeker extends Agent {
    EventQueue.invokeLater(new Runnable() {
      @Override
      public void run() {
-       Logger.info(agent, "İnsanlarla iletişim kurmak için UI yaratılıyor...");
+       Logger.info(agent, "Creating Music Seeker UI...");
        try {
          ui = new MusicView(agent);
          ui.setVisible(true);
        } catch (Exception e) {
-         Logger.error(agent, e, "UI yaratılamadı!");
+         Logger.error(agent, e, "Couldn't create UI!");
        }
      }
    });
@@ -84,7 +84,7 @@ public class MusicSeeker extends Agent {
 
     @Override
     public void action() {
-      Logger.info(agent, "Müzik satıcılarına verilen kriterlere uygun bir müzik listesi isteği yollanıyor...");
+      Logger.info(agent, "Sending song search request to music providers...");
       ACLMessage msg = new ACLMessage(ACLMessage.CFP);
       for(DFAgentDescription df: knownAgentsAtTimeBehaviourStarted) {
         msg.addReceiver(df.getName());
@@ -93,7 +93,7 @@ public class MusicSeeker extends Agent {
         msg.setContentObject(new SongRequestInfo(genre, maxBudgetPerSong, minRating));
         this.myAgent.send(msg);
       } catch (Exception e) {
-        Logger.error(agent, e, "Müzik satıcılarına müzik arama isteği yollanamadı.");
+        Logger.error(agent, e, "Couldn't send song search request to music providers.");
       }
     }
    }
@@ -111,33 +111,33 @@ public class MusicSeeker extends Agent {
 
       @Override
       public void action() {
-        Logger.info(agent, "Müzik arama sonuçları alınıyor... (%s / %s)", answerCount, knownAgentsAtTimeBehaviourStarted.size());
+        Logger.info(agent, "Recieving song search results... (%s / %s)", answerCount, knownAgentsAtTimeBehaviourStarted.size());
         ACLMessage msg = this.myAgent.receive();
         if (msg == null) { block(WAIT_MS); return; }
         
         try {
           if(!msg.getContentObject().getClass().equals(HashSet.class)) {
-            Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
+            Logger.warn(agent, "Unexcepted message received from agent %s.", msg.getSender().getName());
             return;
           }
           
           answerCount++;
           
           if(msg.getPerformative() == ACLMessage.REFUSE) {
-            Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
+            Logger.warn(agent, "%s refuesd the message!", msg.getSender().getName());
             return;
           }
           
           HashSet<SongSellInfo> songListReturned = (HashSet<SongSellInfo>) msg.getContentObject();
           if(songListReturned == null || songListReturned.size() == 0) { 
-            Logger.warn(agent, "%s isimli etmen boş liste gönderdi.", msg.getSender().getName());
+            Logger.warn(agent, "%s sent an empty list of songs!", msg.getSender().getName());
             return;
           }
           
           for(SongSellInfo s: songListReturned) {
             /* We take security serious */
             if(!s.getSellerAgent().equals(msg.getSender())) {
-              Logger.error(agent, "Kimlik uyuşmazlığı tespit edildi! %s 'ten gelen bilgiler yok sayılıyor.", msg.getSender().getName());
+              Logger.error(agent, "Music seller agent isn't the agent he claims to be! Security! (for agent %s)", msg.getSender().getName());
               return;
             }
           }
@@ -145,7 +145,7 @@ public class MusicSeeker extends Agent {
           songOffers.addAll(songListReturned);
           
         } catch (Exception e) {
-          Logger.error(agent, e, "Listeyi alamadım.");
+          Logger.error(agent, e, "Couldn't collect the song search results.");
         }
        
       }
@@ -153,7 +153,7 @@ public class MusicSeeker extends Agent {
       @Override
       public boolean done() {
         if(System.currentTimeMillis() - startTime > TIMEOUT_MS) {
-          Logger.warn(agent, "Cevap için beklerken zaman aşımı oldu.");
+          Logger.warn(agent, "Timeout occured while waiting for response.");
           return true;
         }
         
@@ -250,7 +250,7 @@ public class MusicSeeker extends Agent {
       @Override
       public void action() {
         if(songsToBuyList == null || songsToBuyList.size() == 0) { Logger.warn(agent, "Hiç müzik bulunamadı."); return; }
-         Logger.info(agent, "Satın alınmasına karar verilen müziklerin siparişi veriliyor...");
+         Logger.info(agent, "Ordering song purchase...");
          for(SongSellInfo ssi: songsToBuyList) {
            ACLMessage msg = new ACLMessage(ACLMessage.AGREE);
            msg.addReceiver(ssi.getSellerAgent());
@@ -258,7 +258,7 @@ public class MusicSeeker extends Agent {
              msg.setContentObject(ssi);
              this.myAgent.send(msg);
            } catch (Exception e) {
-             Logger.error(agent, e, "Müzik satın alma isteği yollanamadı.");
+             Logger.error(agent, e, "Couldn't send song purchase request.");
            }
          }
       }
@@ -279,20 +279,20 @@ public class MusicSeeker extends Agent {
       public void action() {
         if(isFirstRun) { startTime = System.currentTimeMillis(); } 
         if(songsToBuy.size() == 0) { return; }
-        Logger.info(agent, "Müzik satın alma istekleri sonucu bekleniyor... (%s / %s)", songCount, songsToBuy.size());
+        Logger.info(agent, "Waiting for song purchase results... (%s / %s)", songCount, songsToBuy.size());
         ACLMessage msg = this.myAgent.receive();
         if (msg == null) { block(WAIT_MS); return; }
         
         try {
           if(!msg.getContentObject().getClass().equals(Tuple.class)) {
-            Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
+            Logger.warn(agent, "Agent %s sent an unexpected message.", msg.getSender().getName());
             return;
           }
           
           songCount++;
           
           if(msg.getPerformative() == ACLMessage.REFUSE) {
-            Logger.warn(agent, "%s beni reddetti!", msg.getSender().getName());
+            Logger.warn(agent, "%s refused me!", msg.getSender().getName());
             return;
           }
           
@@ -300,7 +300,7 @@ public class MusicSeeker extends Agent {
           final String url = urlRequest._1;
           final SongSellInfo songInfo = urlRequest._2;
           if(Utils.isBlank(url) || songInfo == null) { 
-            Logger.warn(agent, "%s isimli etmen müzik bilgisini vermedi, satın alamadım.", msg.getSender().getName());
+            Logger.warn(agent, "Agent %s didn't return order result info, buying song failed.", msg.getSender().getName());
             return;
           }
           
@@ -315,7 +315,7 @@ public class MusicSeeker extends Agent {
          
           SwingUtilities.invokeLater(addIt);
         } catch (Exception e) {
-          Logger.error(agent, e, "Şarkıyı alamadım.");
+          Logger.error(agent, e, "Couldn't purchase song.");
         }
       }
 
@@ -329,7 +329,7 @@ public class MusicSeeker extends Agent {
         };
         
         if(System.currentTimeMillis() - startTime > TIMEOUT_MS) {
-          Logger.warn(agent, "Cevap için beklerken zaman aşımı oldu.");
+          Logger.warn(agent, "Timeout occured while waiting for response.");
           SwingUtilities.invokeLater(enableUI);
           return true;
         }
@@ -365,7 +365,7 @@ public class MusicSeeker extends Agent {
         }
         //Logger.info(agent, "Müzik satma hizmeti sunan etmenler güncelledi. %s etmen bulundu.", result.length);
       } catch (FIPAException e) {
-        Logger.error(agent,  e, "Müzik satma hizmeti sunan etmenler güncellnirken hata oluştu.");
+        Logger.error(agent,  e, "An error occured while updating music provider agent list from DF.");
       }
     }
 

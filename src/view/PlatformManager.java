@@ -29,7 +29,7 @@ public class PlatformManager extends JFrame {
    */
   public PlatformManager(ContainerController jadeContainr) {
     this.jadeContainer = jadeContainr;
-    setTitle("Platform Yöneticisi");
+    setTitle("Platform Manager");
     setResizable(false);
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setBounds(100, 100, 383, 178);
@@ -38,30 +38,30 @@ public class PlatformManager extends JFrame {
     setContentPane(contentPane);
     contentPane.setLayout(null);
     
-    JButton btnMusicSeeker = new JButton("Ekle");
+    JButton btnMusicSeeker = new JButton("Add");
     btnMusicSeeker.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
         try {
           String agentName = textMusicSeeker.getText();
-          if(Utils.isBlank(agentName)) { Logger.warn("Agent adı yok."); return; }
+          if(Utils.isBlank(agentName)) { Logger.warn("Agent has no name!"); return; }
           textMusicSeeker.setText("");
-          Logger.info("Agent %s yaratılıyor...", agentName);
+          Logger.info("Agent %s is being created...", agentName);
           AgentController ac = jadeContainer.createNewAgent(agentName, "agent.MusicSeeker", null);
           ac.start();
         } catch (StaleProxyException ex) {
-          Logger.error(ex, "Agent yaratılamadı.");
+          Logger.error(ex, "Agent couldn't created.");
         }
       }
     });
     btnMusicSeeker.setBounds(261, 31, 117, 29);
     contentPane.add(btnMusicSeeker);
     
-    JLabel lblMusicSeeker = new JLabel("Sisteme yeni müzik arayan ekle:");
+    JLabel lblMusicSeeker = new JLabel("Add new music seeker agent:");
     lblMusicSeeker.setBounds(6, 6, 211, 16);
     contentPane.add(lblMusicSeeker);
     
-    JLabel lblMusicProvider = new JLabel("İsim:");
+    JLabel lblMusicProvider = new JLabel("Name:");
     lblMusicProvider.setBounds(6, 36, 38, 16);
     contentPane.add(lblMusicProvider);
     
@@ -70,26 +70,26 @@ public class PlatformManager extends JFrame {
     contentPane.add(textMusicSeeker);
     textMusicSeeker.setColumns(10);
     
-    JButton btnMusicProvider = new JButton("Ekle");
+    JButton btnMusicProvider = new JButton("Add");
     btnMusicProvider.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
         try {
           String agentName = textMusicProvider.getText();
-          if(Utils.isBlank(agentName)) { Logger.warn("Agent adı yok."); return; }
+          if(Utils.isBlank(agentName)) { Logger.warn("Agent has no name!"); return; }
           textMusicProvider.setText("");
-          Logger.info("Agent %s yaratılıyor...", agentName);
+          Logger.info("Agent %s is being created...", agentName);
           AgentController ac = jadeContainer.createNewAgent(agentName, "agent.MusicProvider", null);
           ac.start();
         } catch (StaleProxyException ex) {
-          Logger.error(ex, "Agent yaratılamadı.");
+          Logger.error(ex, "Agent couldn't created.");
         }
       }
     });
     btnMusicProvider.setBounds(261, 115, 117, 29);
     contentPane.add(btnMusicProvider);
     
-    JLabel label = new JLabel("İsim:");
+    JLabel label = new JLabel("Name:");
     label.setBounds(6, 120, 38, 16);
     contentPane.add(label);
     
@@ -98,7 +98,7 @@ public class PlatformManager extends JFrame {
     textMusicProvider.setBounds(43, 114, 223, 28);
     contentPane.add(textMusicProvider);
     
-    JLabel lblSistemeYeniMzik = new JLabel("Sisteme yeni müzik satıcısı ekle:");
+    JLabel lblSistemeYeniMzik = new JLabel("Add new music provider agent:");
     lblSistemeYeniMzik.setBounds(6, 92, 211, 16);
     contentPane.add(lblSistemeYeniMzik);
   }

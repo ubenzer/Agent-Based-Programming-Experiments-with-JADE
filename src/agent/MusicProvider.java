@@ -43,20 +43,20 @@ public class MusicProvider extends Agent {
     
     try {
       DFService.register(this, df);
-      Logger.info(agent, "DF etmenine kayıt ediliyoré...");
+      Logger.info(agent, "Registering to DF agent...");
     } catch (FIPAException e) {
-      Logger.error(agent, e, "DF etmenine kayıt yapamadık. :/");
+      Logger.error(agent, e, "Couldn't register to DF agent!");
     }
     
     EventQueue.invokeLater(new Runnable() {
       @Override
       public void run() {
-        Logger.info(agent, "İnsanlarla iletişim kurmak için UI yaratılıyor...");
+        Logger.info(agent, "Creating Music Provider UI...");
         try {
           ui = new ProviderView(agent);
           ui.setVisible(true);
         } catch (Exception e) {
-          Logger.error(agent, e, "UI yaratılamadı!");
+          Logger.error(agent, e, "Couldn't create UI!");
         }
       }
     });
@@ -72,7 +72,7 @@ public class MusicProvider extends Agent {
 
     @Override
     public void action() {
-      Logger.info(agent, "Şarkı satın alma veya sorgulama istekleri için bekleniyor...");
+      Logger.info(agent, "Waiting for 'Buy Song' and 'Query Song' requests...");
       ACLMessage msg = this.myAgent.receive();
       if (msg == null) { this.block(); return; }
       
@@ -88,9 +88,9 @@ public class MusicProvider extends Agent {
           return;
         }
         
-        Logger.warn(agent, "%s şu anda beklemediğim bir mesaj attı bana.", msg.getSender().getName());
+        Logger.warn(agent, "Got an unexpected message from %s!", msg.getSender().getName());
       } catch (UnreadableException e) {
-        Logger.error(agent, e, "Mesaj okunamadı.");
+        Logger.error(agent, e, "Couldn't parse and read the message!");
       }
     }
   }
@@ -106,7 +106,7 @@ public class MusicProvider extends Agent {
 
     @Override
     public void action() {
-      Logger.info(agent, "Verilen kriterlere göre şarkı aranıyor...");
+      Logger.info(agent, "Searching song with given criteria...");
       HashSet<SongSellInfo> tbReturned = new HashSet<SongSellInfo>();
       
       for(SongSellInfo ssi: agent.songList) {
@@ -136,7 +136,7 @@ public class MusicProvider extends Agent {
         reply.setContentObject(tbReturned);
         this.myAgent.send(reply);
       } catch (Exception e) {
-        Logger.error(agent, e, "Şarkı arama sonucu gönderilemedi.");
+        Logger.error(agent, e, "Couldn't sent search results.");
       }
     }
   }
@@ -165,7 +165,7 @@ public class MusicProvider extends Agent {
         reply.setContentObject(urlRequest);
         this.myAgent.send(reply);
         
-        Logger.info(agent, "Şarkı satıldı. Agent: %s Şarkı: %s - %s", msg.getSender().getName(), ssi.getSong().getArtist(), ssi.getSong().getName());
+        Logger.info(agent, "Song sold. Seller agent: %s Song Info: %s - %s", msg.getSender().getName(), ssi.getSong().getArtist(), ssi.getSong().getName());
         
         Runnable addIt = new Runnable() { 
           @Override
@@ -176,7 +176,7 @@ public class MusicProvider extends Agent {
        
         SwingUtilities.invokeLater(addIt);
       } catch (Exception e) {
-        Logger.error(agent, e, "Şarkı satın alma sonucu gönderilemedi.");
+        Logger.error(agent, e, "Couldn't sent song purchase response.");
       }
     }
 
@@ -218,7 +218,7 @@ public class MusicProvider extends Agent {
       try {
         DFService.deregister(agent);
       } catch (FIPAException e) {
-        Logger.error(agent, e, "Agent DF'den silinemedi.");
+        Logger.error(agent, e, "Agent couldn't be unregistered from DF.");
       }
       agent.doDelete();
     }

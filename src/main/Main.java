@@ -21,7 +21,7 @@ public class Main {
     String path = Main.class.getProtectionDomain().getCodeSource().getLocation().getPath();
     PropertyConfigurator.configure(path + File.separator + "log4j.properties");
     
-    Logger.info("Platform başlatılıyor...");
+    Logger.info("Starting platform...");
     
     Profile p = new ProfileImpl();
     p.setParameter(Profile.MAIN_HOST, "localhost");
@@ -30,16 +30,16 @@ public class Main {
     Runtime r = Runtime.instance();
     final ContainerController cc = r.createMainContainer(p);
     
-    Logger.info("Platform yöneticisi arayüzü başlatma treadi yaratılıyor...");
+    Logger.info("Creating Platfrom Manager UI Starter thread...");
     EventQueue.invokeLater(new Runnable() {
       @Override
       public void run() {
         try {
-          Logger.info("Platform yöneticisi arayüzü başlatılıyor...");
+          Logger.info("Starting Platform Manager UI...");
           PlatformManager frame = new PlatformManager(cc);
           frame.setVisible(true);
         } catch (Exception e) {
-          Logger.error(e, "Platform yöneticisi arayüzü başlatılamadı.");
+          Logger.error(e, "Couldn't start Platform Manage UI!");
         }
       }
     });
